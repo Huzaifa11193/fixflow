@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { ArrowRight, Code2, LockKeyhole, Mail, ShieldCheck } from "lucide-react";
+import { LockKeyhole, ShieldCheck } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { AuthForm } from "@/components/fixflow/auth-form";
 import { LogoLockup } from "@/components/fixflow/logo";
 
 export default function SignInPage() {
@@ -15,13 +15,15 @@ export default function SignInPage() {
           </Link>
 
           <div className="max-w-2xl py-16">
-            <p className="text-sm font-medium uppercase text-cyan-300">Welcome back</p>
+            <p className="text-sm font-medium uppercase text-cyan-300">
+              Welcome back
+            </p>
             <h1 className="mt-4 text-4xl font-semibold leading-tight text-white md:text-5xl">
               Continue fixing errors with your saved history.
             </h1>
             <p className="mt-5 text-base leading-7 text-zinc-400">
-              Sign in to access analyses, repeated patterns, lessons, integrations,
-              and settings from the current FixFlow app UI.
+              Sign in to access analyses, repeated patterns, lessons,
+              integrations, and settings from the current FixFlow app UI.
             </p>
           </div>
 
@@ -38,51 +40,14 @@ export default function SignInPage() {
             </div>
             <h2 className="mt-5 text-2xl font-semibold text-white">Login</h2>
             <p className="mt-2 text-sm leading-6 text-zinc-400">
-              Use the demo fields now. Backend auth can be wired to Supabase later.
+              Sign in with the email and password attached to your Supabase
+              account.
             </p>
 
-            <form className="mt-6 grid gap-4">
-              <label className="grid gap-2 text-sm text-zinc-300">
-                Email
-                <input
-                  className="h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-cyan-300/60"
-                  placeholder="you@example.com"
-                  type="email"
-                />
-              </label>
-              <label className="grid gap-2 text-sm text-zinc-300">
-                Password
-                <input
-                  className="h-11 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:border-cyan-300/60"
-                  placeholder="••••••••"
-                  type="password"
-                />
-              </label>
-              <Button className="h-11 gap-2 bg-cyan-400 text-[#071015] hover:bg-cyan-300">
-                Login
-                <ArrowRight className="size-4" />
-              </Button>
-            </form>
+            <AuthForm mode="sign-in" />
 
-            <div className="mt-4 grid gap-3">
-              <Button className="h-11 gap-2 border-white/10 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.08]" variant="outline">
-                <Mail className="size-4" />
-                Continue with email link
-              </Button>
-              <Button className="h-11 gap-2 border-white/10 bg-white/[0.04] text-zinc-100 hover:bg-white/[0.08]" variant="outline">
-                <Code2 className="size-4" />
-                Continue with Git provider
-              </Button>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between text-sm">
-              <span className="text-zinc-500">New to FixFlow?</span>
-              <Link className="font-medium text-cyan-300 hover:text-cyan-200" href="/auth/sign-up">
-                Create account
-              </Link>
-            </div>
             <Link
-              className="mt-4 inline-flex h-8 w-full items-center justify-center rounded-lg bg-emerald-400 px-2.5 text-sm font-medium text-[#071015] transition hover:bg-emerald-300"
+              className="mt-4 inline-flex h-8 w-full items-center justify-center rounded-lg bg-white/[0.05] px-2.5 text-sm font-medium text-zinc-100 transition hover:bg-white/[0.08]"
               href="/app"
             >
               Enter demo app
