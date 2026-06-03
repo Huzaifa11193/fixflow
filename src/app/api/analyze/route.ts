@@ -22,6 +22,10 @@ type Analysis = {
   prevention: string;
   errorMap: string[];
   learningTips: string[];
+  diagnostics?: Array<{ label: string; value: string }>;
+  nextActions?: string[];
+  confidenceReason?: string;
+  impact?: string;
 };
 
 const headers = {
@@ -247,46 +251,276 @@ function pythonAnalysis(): Analysis {
   };
 }
 
-function genericAnalysis(): Analysis {
+function envConfigAnalysis(): Analysis {
   return {
     explanation:
-      "FixFlow could not match a specific high-confidence pattern, but the stack trace can still be triaged systematically.",
+      "The app is trying to read a configuration value that is missing, unavailable in the current runtime, or named differently than the code expects.",
     rootCause:
-      "The pasted text needs more surrounding context or belongs to a pattern not yet in the local analyzer.",
-    category: "General debugging",
-    severity: "Medium",
-    confidence: "58%",
-    fixTime: "10-30 min",
+      "An environment variable, API key, project URL, or runtime secret is not configured for the process handling this request.",
+    category: "Environment config",
+    severity: "High",
+    confidence: "84%",
+    fixTime: "3-10 min",
     solutions: [
       makeSolution(
         1,
-        "Find the first frame inside your code",
-        "75%",
+        "Verify the exact env variable names",
+        "88%",
         "Low",
-        `Start at the earliest stack frame that points to your project files.`
+        `// Next.js browser env values must start with NEXT_PUBLIC_\nNEXT_PUBLIC_SUPABASE_URL=https://...\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...`
       ),
       makeSolution(
         2,
-        "Reduce to the smallest reproducible case",
-        "66%",
-        "Medium",
-        `Comment out recent changes until the error disappears, then re-add one block at a time.`
+        "Restart the dev server after editing env files",
+        "82%",
+        "Low",
+        `# Stop the current dev server, then run:\nnpm run dev`
       ),
       makeSolution(
         3,
-        "Add missing context",
-        "60%",
-        "Low",
-        `Paste the command you ran, package versions, and the full stack trace.`
+        "Keep server-only secrets out of client components",
+        "72%",
+        "Medium",
+        `// Use non-public keys only in API routes or server utilities.\nconst secret = process.env.SERVICE_ROLE_KEY;`
       ),
     ],
     prevention:
-      "Capture full stack traces, commands, recent changes, and environment details for each bug.",
-    errorMap: ["Error occurs", "Relevant stack frame is found", "Small fix is tested"],
+      "Document required env variables in .env.example and restart the dev server whenever .env.local changes.",
+    errorMap: ["Code requests config", "Runtime env is checked", "Missing value breaks feature"],
     learningTips: [
-      "A shorter reproduction beats a longer guess.",
-      "Recent changes are usually the highest-signal clue.",
-      "Exact error text matters.",
+      "Client-exposed Next.js env values need the NEXT_PUBLIC_ prefix.",
+      "Env files are read at process startup.",
+      "Never expose service-role or private API keys in client code.",
+    ],
+  };
+}
+
+function reactHookAnalysis(): Analysis {
+  return {
+    explanation:
+      "React detected that a hook is being called in an invalid place or with unstable dependencies.",
+    rootCause:
+      "Hooks must run in the same order on every render and dependency arrays must include values used inside effects or callbacks.",
+    category: "React hooks",
+    severity: "Medium",
+    confidence: "82%",
+    fixTime: "4-12 min",
+    solutions: [
+      makeSolution(
+        1,
+        "Move hooks to the top level of the component",
+        "86%",
+        "Low",
+        `function Component() {\n  const [value, setValue] = useState(null);\n\n  if (!value) return null;\n  return <div>{value}</div>;\n}`
+      ),
+      makeSolution(
+        2,
+        "Include dependencies used inside effects",
+        "78%",
+        "Low",
+        `useEffect(() => {\n  loadUser(userId);\n}, [userId]);`
+      ),
+      makeSolution(
+        3,
+        "Wrap event logic in callbacks when needed",
+        "66%",
+        "Medium",
+        `const handleSave = useCallback(() => {\n  save(formState);\n}, [formState]);`
+      ),
+    ],
+    prevention:
+      "Keep hooks at the top of components and treat dependency warnings as data-flow bugs, not noise.",
+    errorMap: ["Component renders", "Hook order/dependency is checked", "React warns or crashes"],
+    learningTips: [
+      "Hooks cannot run inside conditionals, loops, or nested functions.",
+      "Effect dependencies describe the values the effect reads.",
+      "Stable callbacks reduce accidental reruns but should not hide missing dependencies.",
+    ],
+  };
+}
+
+function networkAnalysis(): Analysis {
+  return {
+    explanation:
+      "A request to another service failed before the app received the expected response.",
+    rootCause:
+      "The target URL may be wrong, blocked by CORS, offline, protected by auth, or returning a non-JSON error page.",
+    category: "Network/API",
+    severity: "Medium",
+    confidence: "79%",
+    fixTime: "5-20 min",
+    solutions: [
+      makeSolution(
+        1,
+        "Check status code and response body before parsing",
+        "84%",
+        "Low",
+        `const res = await fetch(url);\nconst text = await res.text();\nif (!res.ok) throw new Error(text || res.statusText);\nconst data = JSON.parse(text);`
+      ),
+      makeSolution(
+        2,
+        "Verify the API URL and method",
+        "76%",
+        "Low",
+        `fetch("/api/analyze", {\n  method: "POST",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify(payload),\n});`
+      ),
+      makeSolution(
+        3,
+        "Handle CORS/auth separately",
+        "68%",
+        "Medium",
+        `// Confirm cookies/tokens are sent and the server allows your origin.`
+      ),
+    ],
+    prevention:
+      "Always check response.ok and parse defensive text before assuming a JSON response.",
+    errorMap: ["Client sends request", "Server/network responds", "Client parses or handles error"],
+    learningTips: [
+      "A 500 HTML page will crash code that blindly calls response.json.",
+      "CORS errors are browser-enforced and may not reach your server logs.",
+      "Auth failures often look like parsing errors when the server returns an HTML login page.",
+    ],
+  };
+}
+
+function buildAnalysis(): Analysis {
+  return {
+    explanation:
+      "The app failed during compilation, bundling, or development-server module loading.",
+    rootCause:
+      "The build cache may be stale, a generated chunk may be missing, or the dev server is serving files from an older build.",
+    category: "Build/dev server",
+    severity: "High",
+    confidence: "81%",
+    fixTime: "3-15 min",
+    solutions: [
+      makeSolution(
+        1,
+        "Restart the dev server on a clean port",
+        "86%",
+        "Low",
+        `# Stop old dev servers, then run:\nnpm run dev -- --hostname 127.0.0.1 --port 3000`
+      ),
+      makeSolution(
+        2,
+        "Clear the Next.js build cache",
+        "78%",
+        "Medium",
+        `# Stop dev server first, then remove .next and rebuild.`
+      ),
+      makeSolution(
+        3,
+        "Fix the first TypeScript or ESLint error",
+        "72%",
+        "Medium",
+        `npm run lint\nnpm run build`
+      ),
+    ],
+    prevention:
+      "Avoid running multiple stale dev servers after production builds; restart the server after major route or dependency changes.",
+    errorMap: ["Code changes", "Next compiles chunks", "Stale/missing chunk causes runtime failure"],
+    learningTips: [
+      "A clean production build can pass while an old dev server still serves stale chunks.",
+      "Multiple ports can hide which server you are testing.",
+      "Restart after adding routes, API handlers, or dependencies.",
+    ],
+  };
+}
+
+function authAnalysis(): Analysis {
+  return {
+    explanation:
+      "Authentication failed or the app could not access the expected user session.",
+    rootCause:
+      "Supabase credentials, redirect URLs, session persistence, email confirmation, or row-level security may be misconfigured.",
+    category: "Auth/session",
+    severity: "High",
+    confidence: "80%",
+    fixTime: "5-20 min",
+    solutions: [
+      makeSolution(
+        1,
+        "Verify Supabase URL and publishable key",
+        "84%",
+        "Low",
+        `NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co\nNEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key`
+      ),
+      makeSolution(
+        2,
+        "Check redirect and email confirmation settings",
+        "76%",
+        "Medium",
+        `// Supabase Auth > URL Configuration\n// Add your local URL, e.g. http://127.0.0.1:3004`
+      ),
+      makeSolution(
+        3,
+        "Confirm RLS policies for user-owned rows",
+        "70%",
+        "Medium",
+        `using (auth.uid() = user_id)\nwith check (auth.uid() = user_id)`
+      ),
+    ],
+    prevention:
+      "Keep auth URLs, env variables, and RLS policies documented together before adding new protected pages.",
+    errorMap: ["User submits auth form", "Supabase validates session", "App reads protected data"],
+    learningTips: [
+      "A valid client key is not enough if redirect URLs are missing.",
+      "Email confirmation can block immediate login depending on project settings.",
+      "RLS errors often look like empty history or failed inserts.",
+    ],
+  };
+}
+
+function genericAnalysis(text: string, framework?: string): Analysis {
+  const firstLine =
+    text
+      .split("\n")
+      .map((line) => line.trim())
+      .find(Boolean) || "the pasted issue";
+  const hint =
+    framework && framework !== "Auto"
+      ? ` in the ${framework} stack`
+      : "";
+
+  return {
+    explanation:
+      `FixFlow did not find a named high-confidence pattern yet, but it can still triage ${firstLine}${hint} with a structured debugging plan.`,
+    rootCause:
+      "The failure is most likely near the first project-owned stack frame, the command that triggered the error, or the most recent code/config change.",
+    category: "General debugging",
+    severity: "Medium",
+    confidence: "64%",
+    fixTime: "8-25 min",
+    solutions: [
+      makeSolution(
+        1,
+        "Identify the first project-owned stack frame",
+        "78%",
+        "Low",
+        `Look for the first line that points to your code, such as:\nsrc/...\napp/...\ncomponents/...\nlib/...`
+      ),
+      makeSolution(
+        2,
+        "Compare the failing path with the expected runtime state",
+        "70%",
+        "Medium",
+        `console.log({\n  input,\n  selectedFramework,\n  runtimeValue,\n});`
+      ),
+      makeSolution(
+        3,
+        "Retest after one focused change",
+        "64%",
+        "Low",
+        `Apply one fix, restart the affected server if needed, then run the exact same action again.`
+      ),
+    ],
+    prevention:
+      "Save the command, full stack trace, recent changes, framework version, and the exact route/action that reproduced the issue.",
+    errorMap: ["Error appears", "First project clue is isolated", "One focused fix is tested"],
+    learningTips: [
+      "Do not start at the deepest framework frame; start at the first line from your project.",
+      "Recent changes are usually the highest-signal clue when the pattern is unknown.",
+      "A useful bug report includes what action triggered the error and what changed recently.",
     ],
   };
 }
@@ -306,6 +540,26 @@ function analyzeLocally(text: string, framework?: string): Analysis {
     return tailwindAnalysis();
   }
 
+  if (/env|environment variable|api key|publishable key|secret|process\.env|missing.*key|not configured/.test(source)) {
+    return envConfigAnalysis();
+  }
+
+  if (/invalid hook call|react hook|exhaustive-deps|rules of hooks|useeffect|usememo|usecallback/.test(source)) {
+    return reactHookAnalysis();
+  }
+
+  if (/fetch|network|cors|failed to fetch|unexpected token.*html|response\.json|json.*parse|http 4\d\d|http 5\d\d|500 internal server error|server error page|html error page/.test(source)) {
+    return networkAnalysis();
+  }
+
+  if (/auth|session|login|signup|sign in|sign up|supabase|row level security|rls|not authenticated|unauthorized/.test(source)) {
+    return authAnalysis();
+  }
+
+  if (/webpack|chunk|cannot find module '\.\/\d+\.js'|next build|compiled with warnings|failed to compile|eslint|typescript|module build failed|stale/i.test(source)) {
+    return buildAnalysis();
+  }
+
   if (/traceback|importerror|python|django|flask/.test(source)) {
     return pythonAnalysis();
   }
@@ -314,7 +568,7 @@ function analyzeLocally(text: string, framework?: string): Analysis {
     return typeErrorAnalysis();
   }
 
-  return genericAnalysis();
+  return genericAnalysis(text, framework);
 }
 
 function normalizeAIResult(
@@ -345,6 +599,69 @@ function normalizeAIResult(
   };
 }
 
+function addAdvancedContext(
+  analysis: Analysis,
+  text: string,
+  framework?: string
+): Analysis {
+  const hasStackFrame = /\bat\s+.+:\d+|traceback|line\s+\d+/i.test(text);
+  const mentionsInstall = /npm|pnpm|yarn|pip|bundle|composer|cargo|go get/i.test(text);
+  const hasFilePath = /(?:src|app|pages|components|lib|server|client)[\\/][\w./-]+/i.test(text);
+
+  const diagnostics = [
+    {
+      label: "Pattern",
+      value: analysis.category,
+    },
+    {
+      label: "Framework hint",
+      value: framework || "Auto detected",
+    },
+    {
+      label: "Evidence",
+      value: hasStackFrame
+        ? "Stack frame or line number found"
+        : hasFilePath
+          ? "Project file path found"
+          : "Needs more stack context",
+    },
+    {
+      label: "Environment clue",
+      value: mentionsInstall ? "Package manager mentioned" : "No package manager clue",
+    },
+  ];
+
+  const nextActions = [
+    analysis.solutions[0]?.title
+      ? `Try first: ${analysis.solutions[0].title}.`
+      : "Start with the first relevant stack frame in your code.",
+    hasFilePath
+      ? "Open the referenced project file and inspect the exact line."
+      : "Paste the exact file path and line number if the first fix is unclear.",
+    "Run the app again after applying one fix, then compare the new error output.",
+  ];
+
+  const confidenceReason =
+    analysis.confidence === "92%" || analysis.confidence === "86%"
+      ? "High-confidence pattern match based on recognizable error wording."
+      : "Moderate confidence because the pasted text has limited framework-specific context.";
+
+  const impact =
+    analysis.severity === "High"
+      ? "Likely blocks build, startup, or runtime execution until fixed."
+      : analysis.severity === "Medium"
+        ? "Likely affects a visible workflow or produces noisy runtime failures."
+        : "Usually localized and unlikely to block the whole app.";
+
+  return {
+    ...analysis,
+    diagnostics,
+    nextActions,
+    confidenceReason,
+    impact,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -364,7 +681,11 @@ export async function POST(request: Request) {
     const detected = detectFramework(text);
     const local = analyzeLocally(text, framework || detected.framework);
     const ai = await queryAI(text, framework || detected.framework).catch(() => null);
-    const analysis = normalizeAIResult(local, ai);
+    const analysis = addAdvancedContext(
+      normalizeAIResult(local, ai),
+      text,
+      framework || detected.framework
+    );
 
     return NextResponse.json(
       {

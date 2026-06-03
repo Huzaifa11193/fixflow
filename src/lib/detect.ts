@@ -58,6 +58,36 @@ export function detectFramework(text: string) {
     return result;
   }
 
+  if (/env|environment variable|api key|publishable key|secret|process\.env|not configured/i.test(text)) {
+    result.language = "Configuration";
+    result.framework = /supabase/i.test(text) ? "Supabase" : "Environment";
+    return result;
+  }
+
+  if (/invalid hook call|react hook|exhaustive-deps|rules of hooks|useeffect|usememo|usecallback/i.test(text)) {
+    result.language = "JavaScript/TypeScript";
+    result.framework = "React";
+    return result;
+  }
+
+  if (/fetch|network|cors|failed to fetch|unexpected token.*html|response\.json|json.*parse|http 4\d\d|http 5\d\d|server error page|html error page/i.test(text)) {
+    result.language = "JavaScript/TypeScript";
+    result.framework = "Network / API";
+    return result;
+  }
+
+  if (/auth|session|login|signup|sign in|sign up|supabase|row level security|rls|not authenticated|unauthorized/i.test(text)) {
+    result.language = "Auth";
+    result.framework = /supabase/i.test(text) ? "Supabase Auth" : "Authentication";
+    return result;
+  }
+
+  if (/webpack|chunk|cannot find module '\.\/\d+\.js'|next build|failed to compile|eslint|typescript|module build failed|stale/i.test(text)) {
+    result.language = "JavaScript/TypeScript";
+    result.framework = /next/i.test(text) ? "Next.js build" : "Build tooling";
+    return result;
+  }
+
   if (/rust|panic:|thread 'main' panicked/i.test(text)) {
     result.language = "Rust";
     return result;

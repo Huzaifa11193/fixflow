@@ -19,6 +19,10 @@ export type HistoryAnalysis = {
   prevention: string;
   errorMap: string[];
   learningTips: string[];
+  diagnostics?: Array<{ label: string; value: string }>;
+  nextActions?: string[];
+  confidenceReason?: string;
+  impact?: string;
 };
 
 export type HistoryItem = {
@@ -96,7 +100,11 @@ export function loadLocalHistory(userId?: string): HistoryItem[] {
     const raw = window.localStorage.getItem(getStorageKey(userId));
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed)
+      ? parsed
+          .map((item) => normalizeHistoryItem(item, userId))
+          .filter((item): item is HistoryItem => Boolean(item))
+      : [];
   } catch {
     return [];
   }
@@ -108,11 +116,15 @@ function writeLocalHistory(
   shouldNotify = true
 ) {
   if (!canUseStorage()) return;
-  window.localStorage.setItem(
-    getStorageKey(userId),
-    JSON.stringify(items.slice(0, MAX_LOCAL_HISTORY))
-  );
-  if (shouldNotify) notifyHistoryChanged();
+  try {
+    window.localStorage.setItem(
+      getStorageKey(userId),
+      JSON.stringify(items.slice(0, MAX_LOCAL_HISTORY))
+    );
+    if (shouldNotify) notifyHistoryChanged();
+  } catch {
+    // History is a convenience layer; analysis should still work without storage.
+  }
 }
 
 export async function loadHistory(userId?: string): Promise<HistoryItem[]> {
@@ -136,7 +148,7 @@ export async function loadHistory(userId?: string): Promise<HistoryItem[]> {
 
     const remoteItems: HistoryItem[] = data.map((row) => {
       const analysis = row.analysis as HistoryAnalysis;
-      return {
+      return normalizeHistoryItem({
         id: String(row.id),
         userId: String(row.user_id || userId),
         title: makeHistoryTitle(String(row.input || ""), analysis),
@@ -145,8 +157,8 @@ export async function loadHistory(userId?: string): Promise<HistoryItem[]> {
         analysis,
         createdAt: normalizeDate(row.created_at ? String(row.created_at) : undefined),
         source: "supabase",
-      };
-    });
+      }, userId);
+    }).filter((item): item is HistoryItem => Boolean(item));
 
     const merged = mergeHistory(remoteItems, localItems);
     writeLocalHistory(merged, userId, false);
@@ -270,4 +282,85 @@ export function getSeverityTone(severity?: string) {
   if (severity === "High") return "text-rose-300";
   if (severity === "Medium") return "text-amber-300";
   return "text-emerald-300";
+}
+
+function normalizeHistoryItem(
+  value: unknown,
+  fallbackUserId?: string
+): HistoryItem | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Partial<HistoryItem>;
+  const analysis = normalizeStoredAnalysis(record.analysis);
+  const input = typeof record.input === "string" ? record.input : "";
+
+  return {
+    id: typeof record.id === "string" ? record.id : makeId(),
+    userId: typeof record.userId === "string" ? record.userId : fallbackUserId,
+    title:
+      typeof record.title === "string" && record.title.trim()
+        ? record.title
+        : makeHistoryTitle(input, analysis),
+    input,
+    framework:
+      typeof record.framework === "string" ? record.framework : undefined,
+    analysis,
+    createdAt:
+      typeof record.createdAt === "string"
+        ? record.createdAt
+        : new Date().toISOString(),
+    source: record.source === "supabase" ? "supabase" : "local",
+  };
+}
+
+function normalizeStoredAnalysis(value: unknown): HistoryAnalysis {
+  const analysis =
+    value && typeof value === "object" ? (value as Partial<HistoryAnalysis>) : {};
+
+  return {
+    explanation:
+      typeof analysis.explanation === "string"
+        ? analysis.explanation
+        : "No explanation was saved for this older analysis.",
+    rootCause:
+      typeof analysis.rootCause === "string"
+        ? analysis.rootCause
+        : "Root cause was not saved for this older analysis.",
+    category:
+      typeof analysis.category === "string"
+        ? analysis.category
+        : "General debugging",
+    severity:
+      analysis.severity === "High" ||
+      analysis.severity === "Medium" ||
+      analysis.severity === "Low"
+        ? analysis.severity
+        : "Medium",
+    confidence:
+      typeof analysis.confidence === "string" ? analysis.confidence : "60%",
+    fixTime:
+      typeof analysis.fixTime === "string" ? analysis.fixTime : "10-30 min",
+    solutions: Array.isArray(analysis.solutions) ? analysis.solutions : [],
+    prevention:
+      typeof analysis.prevention === "string"
+        ? analysis.prevention
+        : "Save complete stack traces and apply one fix at a time.",
+    errorMap: Array.isArray(analysis.errorMap)
+      ? analysis.errorMap
+      : ["Error occurs", "Pattern is detected", "Fix is tested"],
+    learningTips: Array.isArray(analysis.learningTips)
+      ? analysis.learningTips
+      : ["Read the first stack frame in your code."],
+    diagnostics: Array.isArray(analysis.diagnostics)
+      ? analysis.diagnostics
+      : undefined,
+    nextActions: Array.isArray(analysis.nextActions)
+      ? analysis.nextActions
+      : undefined,
+    confidenceReason:
+      typeof analysis.confidenceReason === "string"
+        ? analysis.confidenceReason
+        : undefined,
+    impact: typeof analysis.impact === "string" ? analysis.impact : undefined,
+  };
 }

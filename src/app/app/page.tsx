@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Loader2,
   Play,
+  Target,
   Terminal,
 } from "lucide-react";
 
@@ -52,8 +53,10 @@ export default function AnalyzePage() {
   );
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [error, setError] = useState("");
+  const [historyWarning, setHistoryWarning] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState("");
+  const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { user } = useAuth();
 
@@ -62,6 +65,7 @@ export default function AnalyzePage() {
   const handleAnalyze = useCallback(async () => {
     const text = input.trim();
     setError("");
+    setHistoryWarning("");
     setCopied("");
 
     if (text.length < 8) {
@@ -84,24 +88,47 @@ export default function AnalyzePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, framework: frameworkHint }),
       });
-      const data = await response.json();
+      const rawResponse = await response.text();
+      let data: {
+        ok?: boolean;
+        error?: string;
+        analysis?: Analysis;
+        detected?: Detected;
+      } | null = null;
+
+      try {
+        data = JSON.parse(rawResponse);
+      } catch {
+        throw new Error(
+          response.ok
+            ? "Analyzer returned an unreadable response. Restart the dev server and try again."
+            : "Analyzer returned a server error page. Restart the dev server and try again."
+        );
+      }
 
       if (!response.ok || !data?.ok || !data?.analysis) {
         throw new Error(data?.error || "Analysis failed.");
       }
 
-      const nextAnalysis = data.analysis as Analysis;
+      const nextAnalysis = normalizeAnalysis(data.analysis);
       const nextDetected = (data.detected as Detected | undefined) ?? previewDetection;
 
       setAnalysis(nextAnalysis);
       setDetected(nextDetected);
+      setActiveLesson(nextAnalysis.learningTips?.[0] || null);
 
-      await saveHistoryItem({
-        analysis: nextAnalysis,
-        framework: frameworkHint,
-        input: text,
-        userId: user?.id,
-      });
+      try {
+        await saveHistoryItem({
+          analysis: nextAnalysis,
+          framework: frameworkHint,
+          input: text,
+          userId: user?.id,
+        });
+      } catch {
+        setHistoryWarning(
+          "Analysis completed, but history could not be saved in this browser/session."
+        );
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Analysis failed.");
     } finally {
@@ -241,6 +268,12 @@ export default function AnalyzePage() {
               </div>
             ) : null}
 
+            {historyWarning ? (
+              <div className="mt-4 rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm leading-6 text-amber-100">
+                {historyWarning}
+              </div>
+            ) : null}
+
             {copied ? (
               <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100">
                 Copied {copied}.
@@ -313,6 +346,71 @@ export default function AnalyzePage() {
                     {analysis?.prevention ??
                       "Prevention tips appear here after analysis."}
                   </p>
+                </div>
+              </div>
+              {analysis ? (
+                <div className="grid gap-3 border-t border-white/10 p-4 md:grid-cols-2">
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs font-medium uppercase text-zinc-500">
+                      Impact
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                      {analysis.impact || "Impact estimate will appear here."}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs font-medium uppercase text-zinc-500">
+                      Confidence reason
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                      {analysis.confidenceReason ||
+                        "Confidence explanation will appear here."}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+            </Panel>
+
+            <Panel className="p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                <Target className="size-4 text-cyan-300" />
+                Diagnostic signals
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {(analysis?.diagnostics ?? [
+                  { label: "Pattern", value: "Waiting for analysis" },
+                  { label: "Evidence", value: "Paste a complete stack trace" },
+                ]).map((item) => (
+                  <div
+                    className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
+                    key={`${item.label}-${item.value}`}
+                  >
+                    <p className="text-xs text-zinc-500">{item.label}</p>
+                    <p className="mt-1 text-sm font-medium text-zinc-100">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3">
+                <p className="text-xs font-medium uppercase text-emerald-100/70">
+                  Next actions
+                </p>
+                <div className="mt-3 grid gap-2">
+                  {(analysis?.nextActions ?? [
+                    "Analyze an error to get a prioritized next step.",
+                    "Apply only one fix at a time, then re-run the app.",
+                  ]).map((action, index) => (
+                    <div
+                      className="grid grid-cols-[24px_1fr] gap-2 text-sm leading-6 text-emerald-100/85"
+                      key={action}
+                    >
+                      <span className="flex size-6 items-center justify-center rounded-md bg-emerald-300/15 text-xs">
+                        {index + 1}
+                      </span>
+                      <span>{action}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </Panel>
@@ -422,23 +520,111 @@ export default function AnalyzePage() {
                   "Read the first stack frame in your code.",
                   "Compare the failing value with the expected value.",
                   "Save the fix pattern for next time.",
-                ]).map((lesson) => (
+                ]).map((lesson, index) => (
                   <button
-                    className="flex min-h-20 items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] p-3 text-left text-sm text-zinc-200 transition hover:border-emerald-300/40 hover:bg-emerald-300/10"
+                    className={`flex min-h-20 items-center justify-between rounded-lg border p-3 text-left text-sm transition ${
+                      activeLesson === lesson
+                        ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-50"
+                        : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-emerald-300/40 hover:bg-emerald-300/10"
+                    }`}
                     key={lesson}
+                    onClick={() => setActiveLesson(lesson)}
                     type="button"
                   >
                     <span>{lesson}</span>
+                    <span className="mr-2 rounded-md bg-white/[0.05] px-2 py-1 text-xs text-zinc-400">
+                      {index + 1}
+                    </span>
                     <FileCode2 className="size-4 text-zinc-500" />
                   </button>
                 ))}
               </div>
+              {activeLesson ? (
+                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                  <p className="text-xs font-medium uppercase text-emerald-300">
+                    Mini lesson
+                  </p>
+                  <h3 className="mt-2 font-semibold text-white">{activeLesson}</h3>
+                  <div className="mt-3 grid gap-2 text-sm leading-6 text-zinc-300">
+                    {buildLessonSteps(activeLesson, analysis).map((step, index) => (
+                      <div
+                        className="grid grid-cols-[26px_1fr] gap-3 rounded-lg border border-white/10 bg-[#11161d] p-3"
+                        key={step}
+                      >
+                        <span className="flex size-6 items-center justify-center rounded-md bg-cyan-300/10 text-xs text-cyan-200">
+                          {index + 1}
+                        </span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </Panel>
           </div>
         </div>
       </AppShell>
     </ProtectedRoute>
   );
+}
+
+function buildLessonSteps(lesson: string, analysis: Analysis | null) {
+  if (!analysis) {
+    return [
+      "Start by identifying the exact error message.",
+      "Find the first stack frame that points to your code.",
+      "Apply one small fix, then re-run the app.",
+    ];
+  }
+
+  return [
+    `Why it matters: ${analysis.impact || analysis.explanation}`,
+    `What to inspect: ${analysis.rootCause}`,
+    `Try next: ${analysis.nextActions?.[0] || analysis.solutions[0]?.title || lesson}`,
+  ];
+}
+
+function normalizeAnalysis(analysis: Partial<Analysis>): Analysis {
+  return {
+    explanation:
+      analysis.explanation ||
+      "FixFlow analyzed the issue, but the explanation was missing from the response.",
+    rootCause:
+      analysis.rootCause ||
+      "The root cause was not explicit in the response. Inspect the first project stack frame.",
+    category: analysis.category || "General debugging",
+    severity: analysis.severity || "Medium",
+    confidence: analysis.confidence || "60%",
+    fixTime: analysis.fixTime || "10-30 min",
+    solutions: Array.isArray(analysis.solutions) ? analysis.solutions : [],
+    prevention:
+      analysis.prevention ||
+      "Capture full stack traces and apply one fix at a time before retesting.",
+    errorMap:
+      Array.isArray(analysis.errorMap) && analysis.errorMap.length > 0
+        ? analysis.errorMap
+        : ["Error occurs", "Pattern is detected", "Fix is tested"],
+    learningTips:
+      Array.isArray(analysis.learningTips) && analysis.learningTips.length > 0
+        ? analysis.learningTips
+        : [
+            "Read the first stack frame in your code.",
+            "Compare the failing value with the expected value.",
+            "Re-run after one focused fix.",
+          ],
+    diagnostics: Array.isArray(analysis.diagnostics)
+      ? analysis.diagnostics
+      : [{ label: "Response", value: "Normalized fallback" }],
+    nextActions: Array.isArray(analysis.nextActions)
+      ? analysis.nextActions
+      : ["Apply the highest-confidence fix, then re-run the app."],
+    confidenceReason:
+      analysis.confidenceReason ||
+      "Confidence is estimated from the matched error pattern.",
+    impact:
+      analysis.impact ||
+      "Impact depends on where this error appears in the workflow.",
+  };
 }
 
 function MetricCard({
