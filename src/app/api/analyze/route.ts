@@ -471,56 +471,193 @@ function authAnalysis(): Analysis {
   };
 }
 
+function extractMeaningfulLines(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function extractErrorHeadline(lines: string[]) {
+  return (
+    lines.find((line) =>
+      /error|warning|exception|failed|cannot|can't|invalid|missing|denied|not found|timeout|crash/i.test(
+        line
+      )
+    ) ||
+    lines[0] ||
+    "the pasted issue"
+  );
+}
+
+function extractProjectFrame(lines: string[]) {
+  return lines.find((line) =>
+    /(?:src|app|pages|components|lib|server|client|api|routes)[\\/][\w./-]+(?::\d+)?/i.test(
+      line
+    )
+  );
+}
+
+function extractCommand(lines: string[]) {
+  return lines.find((line) =>
+    /^(?:npm|pnpm|yarn|bun|npx|node|next|python|pip|tsx|ts-node|cargo|go|composer)\b/i.test(
+      line.replace(/^[$>]\s*/, "")
+    )
+  );
+}
+
+function inferGenericCategory(headline: string, text: string) {
+  const source = `${headline}\n${text}`.toLowerCase();
+
+  if (/syntaxerror|unexpected token|unterminated|parse error/.test(source)) {
+    return {
+      category: "Syntax/parse error",
+      severity: "High" as const,
+      confidence: "76%",
+      fixTime: "3-12 min",
+    };
+  }
+
+  if (/referenceerror|is not defined|cannot access .* before initialization/.test(source)) {
+    return {
+      category: "Undefined reference",
+      severity: "Medium" as const,
+      confidence: "74%",
+      fixTime: "4-15 min",
+    };
+  }
+
+  if (/typescript|type .* is not assignable|property .* does not exist|ts\d+/.test(source)) {
+    return {
+      category: "TypeScript type error",
+      severity: "Medium" as const,
+      confidence: "73%",
+      fixTime: "5-20 min",
+    };
+  }
+
+  if (/permission|eacces|eperm|access denied|denied/.test(source)) {
+    return {
+      category: "Permission/access error",
+      severity: "Medium" as const,
+      confidence: "72%",
+      fixTime: "5-20 min",
+    };
+  }
+
+  if (/database|sql|postgres|supabase|relation .* does not exist|duplicate key/.test(source)) {
+    return {
+      category: "Database/runtime data",
+      severity: "High" as const,
+      confidence: "72%",
+      fixTime: "8-30 min",
+    };
+  }
+
+  return {
+    category: "General debugging",
+    severity: "Medium" as const,
+    confidence: "66%",
+    fixTime: "8-25 min",
+  };
+}
+
+function genericRootCause({
+  command,
+  framework,
+  headline,
+  projectFrame,
+}: {
+  command?: string;
+  framework?: string;
+  headline: string;
+  projectFrame?: string;
+}) {
+  if (projectFrame) {
+    return `The strongest clue is this project file/frame: "${projectFrame}". Start there because it is closer to your code than framework internals.`;
+  }
+
+  if (command) {
+    return `The failure happened while running "${command}". The next clue is usually the first error line after that command, plus any config or dependency it loads.`;
+  }
+
+  if (framework && framework !== "Auto") {
+    return `The ${framework} stack reported "${headline}". The likely cause is a mismatch between what that framework expected and what the current code/config provided.`;
+  }
+
+  return `The pasted error headline is "${headline}". FixFlow could not map it to a named pattern yet, so the safest path is to isolate the exact value, file, or config item mentioned there.`;
+}
+
 function genericAnalysis(text: string, framework?: string): Analysis {
-  const firstLine =
-    text
-      .split("\n")
-      .map((line) => line.trim())
-      .find(Boolean) || "the pasted issue";
+  const lines = extractMeaningfulLines(text);
+  const headline = extractErrorHeadline(lines);
+  const projectFrame = extractProjectFrame(lines);
+  const command = extractCommand(lines);
+  const inferred = inferGenericCategory(headline, text);
   const hint =
     framework && framework !== "Auto"
       ? ` in the ${framework} stack`
       : "";
+  const firstInspectionTarget =
+    projectFrame || command || headline;
 
   return {
     explanation:
-      `FixFlow did not find a named high-confidence pattern yet, but it can still triage ${firstLine}${hint} with a structured debugging plan.`,
-    rootCause:
-      "The failure is most likely near the first project-owned stack frame, the command that triggered the error, or the most recent code/config change.",
-    category: "General debugging",
-    severity: "Medium",
-    confidence: "64%",
-    fixTime: "8-25 min",
+      `FixFlow did not find a named high-confidence pattern yet, but it identified "${headline}"${hint} as the main clue and built a focused debugging plan from it.`,
+    rootCause: genericRootCause({
+      command,
+      framework,
+      headline,
+      projectFrame,
+    }),
+    category: inferred.category,
+    severity: inferred.severity,
+    confidence: inferred.confidence,
+    fixTime: inferred.fixTime,
     solutions: [
       makeSolution(
         1,
-        "Identify the first project-owned stack frame",
-        "78%",
+        projectFrame
+          ? "Open the referenced project file first"
+          : "Start from the extracted error headline",
+        projectFrame ? "82%" : "74%",
         "Low",
-        `Look for the first line that points to your code, such as:\nsrc/...\napp/...\ncomponents/...\nlib/...`
+        projectFrame
+          ? `Open this location and inspect the values used on that line:\n${projectFrame}`
+          : `Use this as the debugging anchor:\n${headline}`
       ),
       makeSolution(
         2,
-        "Compare the failing path with the expected runtime state",
+        "Add one temporary diagnostic near the failing path",
         "70%",
         "Medium",
-        `console.log({\n  input,\n  selectedFramework,\n  runtimeValue,\n});`
+        `console.log("FixFlow debug", {\n  clue: ${JSON.stringify(firstInspectionTarget)},\n  route: typeof window !== "undefined" ? window.location.pathname : "server",\n});`
       ),
       makeSolution(
         3,
-        "Retest after one focused change",
-        "64%",
+        command ? "Re-run the exact failing command" : "Retest the exact failing action",
+        "66%",
         "Low",
-        `Apply one fix, restart the affected server if needed, then run the exact same action again.`
+        command
+          ? `${command.replace(/^[$>]\s*/, "")}\n# If the output changes, paste the new first error line back into FixFlow.`
+          : `Repeat the same click, route, request, or build step after one focused change.`
       ),
     ],
     prevention:
-      "Save the command, full stack trace, recent changes, framework version, and the exact route/action that reproduced the issue.",
-    errorMap: ["Error appears", "First project clue is isolated", "One focused fix is tested"],
+      `When this happens again, save the headline "${headline}", the triggering action, and the first project file/command in the report.`,
+    errorMap: [
+      headline,
+      projectFrame ? "Project frame found" : command ? "Command identified" : "Clue isolated",
+      "One focused fix is tested",
+    ],
     learningTips: [
-      "Do not start at the deepest framework frame; start at the first line from your project.",
-      "Recent changes are usually the highest-signal clue when the pattern is unknown.",
-      "A useful bug report includes what action triggered the error and what changed recently.",
+      projectFrame
+        ? "A project-owned stack frame is usually more useful than framework internals."
+        : "When no file path is present, the first error headline becomes the debugging anchor.",
+      command
+        ? "Keep the exact failing command with the error output."
+        : "Add the route, button, or user action that triggered the error.",
+      "After each fix, compare the new first error line with the previous one.",
     ],
   };
 }
