@@ -64,7 +64,16 @@ export function LandingPageContent() {
           <nav className="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
             <a className="transition hover:text-white" href="#workflow">Workflow</a>
             <a className="transition hover:text-white" href="#features">Features</a>
-            <Link className="transition hover:text-white" href="/pricing">Pricing</Link>
+            <span
+              aria-disabled="true"
+              className="inline-flex cursor-not-allowed items-center gap-2 text-zinc-500"
+              title="Pricing is coming soon"
+            >
+              Pricing
+              <span className="rounded-md bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-200">
+                Soon
+              </span>
+            </span>
           </nav>
           <div className="flex items-center gap-2">
             <Link

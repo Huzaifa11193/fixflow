@@ -43,7 +43,7 @@ const navItems = [
   { label: "Patterns", href: "/patterns", icon: BarChart3 },
   { label: "Learning", href: "/learning", icon: BookOpen },
   { label: "Integrations", href: "/integrations", icon: Plug },
-  { label: "Pricing", href: "/pricing", icon: CreditCard },
+  { label: "Pricing", href: "/pricing", icon: CreditCard, comingSoon: true },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -101,6 +101,23 @@ export function AppShell({
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = active === item.label;
+
+                  if (item.comingSoon) {
+                    return (
+                      <div
+                        aria-disabled="true"
+                        className="flex h-9 shrink-0 cursor-not-allowed items-center gap-2 rounded-lg px-3 text-sm text-zinc-500 opacity-80"
+                        key={item.label}
+                        title="Coming soon"
+                      >
+                        <Icon className="size-4" />
+                        <span>{item.label}</span>
+                        <span className="rounded-md bg-amber-300/10 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-200">
+                          Soon
+                        </span>
+                      </div>
+                    );
+                  }
 
                   return (
                     <Link
