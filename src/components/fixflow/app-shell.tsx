@@ -79,32 +79,32 @@ export function AppShell({
   return (
     <main className="min-h-screen bg-[#0b0d10] text-zinc-100">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-white/10 bg-[#11161d] lg:border-b-0 lg:border-r">
-          <div className="flex h-full flex-col">
+        <aside className="sticky top-0 z-40 border-b border-white/10 bg-[#11161d]/95 backdrop-blur lg:static lg:border-b-0 lg:border-r lg:bg-[#11161d]">
+          <div className="flex flex-col lg:h-full">
             <Link
-              className="flex h-16 items-center gap-3 border-b border-white/10 px-5"
+              className="flex h-14 items-center gap-3 border-b border-white/10 px-4 sm:px-5 lg:h-16"
               href="/"
             >
               <LogoLockup />
             </Link>
 
-            <div className="flex-1 px-3 py-4">
+            <div className="px-3 py-3 lg:flex-1 lg:py-4">
               <Link
-                className="flex h-10 w-full items-center justify-start gap-2 rounded-lg bg-cyan-400 px-3 text-sm font-medium text-[#071015] transition hover:bg-cyan-300"
+                className="hidden h-10 w-full items-center justify-start gap-2 rounded-lg bg-cyan-400 px-3 text-sm font-medium text-[#071015] transition hover:bg-cyan-300 lg:flex"
                 href="/app"
               >
                 <Sparkles className="size-4" />
                 New analysis
               </Link>
 
-              <nav className="mt-5 space-y-1">
+              <nav className="flex gap-2 overflow-x-auto pb-1 lg:mt-5 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = active === item.label;
 
                   return (
                     <Link
-                      className={`flex h-9 items-center gap-2 rounded-lg px-3 text-sm transition ${
+                      className={`flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm transition ${
                         isActive
                           ? "bg-white/[0.08] text-white"
                           : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-100"
@@ -119,7 +119,7 @@ export function AppShell({
                 })}
               </nav>
 
-              <div className="mt-6 px-2">
+              <div className="mt-6 hidden px-2 lg:block">
                 <div className="flex items-center gap-2 text-xs font-medium uppercase text-zinc-500">
                   <History className="size-3.5" />
                   Recent fixes
@@ -156,7 +156,7 @@ export function AppShell({
               </div>
             </div>
 
-            <div className="border-t border-white/10 p-4 space-y-3">
+            <div className="hidden space-y-3 border-t border-white/10 p-4 lg:block">
               <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
                   <Brain className="size-4" />
@@ -220,20 +220,20 @@ export function AppShell({
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-col">
+        <section className="flex min-w-0 flex-col overflow-hidden">
           <header className="flex min-h-16 flex-col gap-3 border-b border-white/10 bg-[#0d1117] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
-            <div>
+            <div className="min-w-0">
               <p className="text-xs font-medium uppercase text-cyan-300">
                 {eyebrow}
               </p>
-              <h1 className="mt-1 text-xl font-semibold tracking-normal text-white">
+              <h1 className="mt-1 break-words text-xl font-semibold tracking-normal text-white">
                 {title}
               </h1>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-zinc-400">
                 {description}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
               {action ?? (
                 <Button className="gap-2 bg-emerald-400 text-[#071015] hover:bg-emerald-300">
                   <Sparkles className="size-4" />
@@ -243,7 +243,9 @@ export function AppShell({
             </div>
           </header>
 
-          <div className="flex-1 bg-[#0f1318] p-4 md:p-6">{children}</div>
+          <div className="min-w-0 flex-1 bg-[#0f1318] p-3 sm:p-4 md:p-6">
+            {children}
+          </div>
         </section>
       </div>
     </main>
@@ -258,7 +260,7 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-lg border border-white/10 bg-[#151a21] ${className}`}>
+    <section className={`min-w-0 rounded-lg border border-white/10 bg-[#151a21] ${className}`}>
       {children}
     </section>
   );

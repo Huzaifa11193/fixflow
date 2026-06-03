@@ -130,9 +130,9 @@ export default function HistoryPage() {
           </>
         }
       >
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
           <Panel>
-            <div className="grid gap-3 border-b border-white/10 p-4 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-3 border-b border-white/10 p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <div className="flex h-11 items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3">
                 <Search className="size-4 text-zinc-500" />
                 <input
@@ -142,10 +142,10 @@ export default function HistoryPage() {
                   value={query}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <Filter className="size-4 text-zinc-500" />
                 <select
-                  className="h-11 rounded-lg border border-white/10 bg-[#11161d] px-3 text-sm text-zinc-200 outline-none"
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-white/10 bg-[#11161d] px-3 text-sm text-zinc-200 outline-none md:flex-none"
                   onChange={(event) => setSeverity(event.target.value)}
                   value={severity}
                 >
@@ -163,17 +163,17 @@ export default function HistoryPage() {
               ) : filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
                   <article
-                    className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto]"
+                    className="grid gap-4 p-3 sm:p-4 md:grid-cols-[minmax(0,1fr)_auto]"
                     key={item.id}
                   >
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span
                           className={`size-2 rounded-full bg-current ${getSeverityTone(
                             item.analysis.severity
                           )}`}
                         />
-                        <h2 className="truncate font-medium text-white">
+                        <h2 className="min-w-0 truncate font-medium text-white">
                           {item.title}
                         </h2>
                       </div>
@@ -198,7 +198,7 @@ export default function HistoryPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-start gap-2 md:justify-end">
                       <Button
                         aria-label="Copy fix"
                         onClick={() => copyItem(item)}
@@ -247,7 +247,7 @@ export default function HistoryPage() {
             </Panel>
             <Panel className="p-4">
               <p className="text-sm font-medium text-zinc-200">Risk mix</p>
-              <p className="mt-2 text-2xl font-semibold text-white">
+              <p className="mt-2 break-words text-2xl font-semibold text-white">
                 {stats.high} high / {stats.medium} medium
               </p>
               <p className="mt-2 text-sm leading-6 text-zinc-400">
@@ -258,7 +258,7 @@ export default function HistoryPage() {
               <p className="text-sm font-medium text-zinc-200">
                 Most common category
               </p>
-              <p className="mt-2 text-2xl font-semibold text-white">
+              <p className="mt-2 break-words text-2xl font-semibold text-white">
                 {stats.mostCommon || "-"}
               </p>
               <p className="mt-2 text-sm leading-6 text-zinc-400">

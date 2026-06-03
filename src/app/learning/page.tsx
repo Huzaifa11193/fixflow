@@ -192,7 +192,7 @@ export default function LearningPage() {
           </Button>
         }
       >
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
               icon={<GraduationCap className="size-4 text-cyan-300" />}
@@ -242,7 +242,7 @@ export default function LearningPage() {
             </div>
           </Panel>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,420px)]">
             <div className="grid content-start gap-4 md:grid-cols-2">
               {filteredLessons.length > 0 ? (
                 filteredLessons.map((lesson) => {
@@ -283,7 +283,7 @@ export default function LearningPage() {
                       <h2 className="mt-4 text-lg font-semibold text-white">
                         {lesson.title}
                       </h2>
-                      <p className="mt-2 min-h-12 text-sm leading-6 text-zinc-400">
+                      <p className="mt-2 min-h-12 break-words text-sm leading-6 text-zinc-400">
                         {lesson.description}
                       </p>
 
@@ -372,7 +372,7 @@ function ActiveLessonPanel({
       </div>
 
       <h2 className="mt-4 text-xl font-semibold text-white">{lesson.title}</h2>
-      <p className="mt-2 text-sm leading-6 text-zinc-400">{lesson.objective}</p>
+      <p className="mt-2 break-words text-sm leading-6 text-zinc-400">{lesson.objective}</p>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
         <span className="rounded-md bg-cyan-300/10 px-2 py-1 text-cyan-200">
@@ -425,7 +425,7 @@ function ActiveLessonPanel({
               >
                 {checked ? <CheckCircle2 className="size-4" /> : index + 1}
               </span>
-              <span className="text-sm leading-6 text-zinc-300">{step}</span>
+              <span className="min-w-0 break-words text-sm leading-6 text-zinc-300">{step}</span>
             </button>
           );
         })}

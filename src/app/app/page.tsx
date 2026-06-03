@@ -210,8 +210,8 @@ export default function AnalyzePage() {
           </>
         }
       >
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)]">
-          <div>
+        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+          <div className="min-w-0">
             <div className="flex flex-wrap gap-2">
               {frameworks.map((framework) => {
                 const isSelected = selectedFramework === framework;
@@ -250,7 +250,7 @@ export default function AnalyzePage() {
                 </Button>
               </div>
               <textarea
-                className="min-h-[390px] w-full resize-none bg-transparent p-4 font-mono text-sm leading-6 text-zinc-200 outline-none placeholder:text-zinc-600"
+                className="min-h-[320px] w-full resize-none bg-transparent p-3 font-mono text-sm leading-6 text-zinc-200 outline-none placeholder:text-zinc-600 sm:min-h-[390px] sm:p-4"
                 onChange={(event) => {
                   setInput(event.target.value);
                   setDetected(detectFramework(event.target.value));
@@ -305,7 +305,7 @@ export default function AnalyzePage() {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid min-w-0 gap-4">
             <Panel>
               <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
@@ -332,8 +332,8 @@ export default function AnalyzePage() {
                   <Copy className="size-4" />
                 </Button>
               </div>
-              <div className="grid gap-4 p-4 md:grid-cols-[1fr_220px]">
-                <p className="text-sm leading-6 text-zinc-300">
+              <div className="grid min-w-0 gap-4 p-4 md:grid-cols-[minmax(0,1fr)_220px]">
+                <p className="break-words text-sm leading-6 text-zinc-300">
                   {analysis?.explanation ??
                     "FixFlow will explain what happened, why it happened, and which fix is most likely to work."}
                 </p>
@@ -342,7 +342,7 @@ export default function AnalyzePage() {
                     <Lightbulb className="size-4" />
                     Prevention
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-cyan-100/75">
+                  <p className="mt-2 break-words text-xs leading-5 text-cyan-100/75">
                     {analysis?.prevention ??
                       "Prevention tips appear here after analysis."}
                   </p>
@@ -354,7 +354,7 @@ export default function AnalyzePage() {
                     <p className="text-xs font-medium uppercase text-zinc-500">
                       Impact
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                    <p className="mt-2 break-words text-sm leading-6 text-zinc-300">
                       {analysis.impact || "Impact estimate will appear here."}
                     </p>
                   </div>
@@ -362,7 +362,7 @@ export default function AnalyzePage() {
                     <p className="text-xs font-medium uppercase text-zinc-500">
                       Confidence reason
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-300">
+                    <p className="mt-2 break-words text-sm leading-6 text-zinc-300">
                       {analysis.confidenceReason ||
                         "Confidence explanation will appear here."}
                     </p>
@@ -386,7 +386,7 @@ export default function AnalyzePage() {
                     key={`${item.label}-${item.value}`}
                   >
                     <p className="text-xs text-zinc-500">{item.label}</p>
-                    <p className="mt-1 text-sm font-medium text-zinc-100">
+                    <p className="mt-1 break-words text-sm font-medium text-zinc-100">
                       {item.value}
                     </p>
                   </div>
@@ -408,7 +408,7 @@ export default function AnalyzePage() {
                       <span className="flex size-6 items-center justify-center rounded-md bg-emerald-300/15 text-xs">
                         {index + 1}
                       </span>
-                      <span>{action}</span>
+                      <span className="min-w-0 break-words">{action}</span>
                     </div>
                   ))}
                 </div>
@@ -441,7 +441,7 @@ export default function AnalyzePage() {
             </Panel>
 
             <section className="grid gap-3">
-              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-sm font-medium uppercase text-zinc-500">
                   Ranked fixes
                 </h2>
@@ -498,7 +498,7 @@ export default function AnalyzePage() {
                         <Copy className="size-4" />
                       </Button>
                     </div>
-                    <pre className="overflow-x-auto p-4 text-sm leading-6 text-zinc-300">
+                    <pre className="max-w-full overflow-x-auto whitespace-pre p-4 text-sm leading-6 text-zinc-300">
                       <code>{solution.snippet}</code>
                     </pre>
                   </Panel>
@@ -522,7 +522,7 @@ export default function AnalyzePage() {
                   "Save the fix pattern for next time.",
                 ]).map((lesson, index) => (
                   <button
-                    className={`flex min-h-20 items-center justify-between rounded-lg border p-3 text-left text-sm transition ${
+                    className={`grid min-h-20 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border p-3 text-left text-sm transition ${
                       activeLesson === lesson
                         ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-50"
                         : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-emerald-300/40 hover:bg-emerald-300/10"
@@ -531,7 +531,7 @@ export default function AnalyzePage() {
                     onClick={() => setActiveLesson(lesson)}
                     type="button"
                   >
-                    <span>{lesson}</span>
+                    <span className="min-w-0 break-words">{lesson}</span>
                     <span className="mr-2 rounded-md bg-white/[0.05] px-2 py-1 text-xs text-zinc-400">
                       {index + 1}
                     </span>
@@ -554,7 +554,7 @@ export default function AnalyzePage() {
                         <span className="flex size-6 items-center justify-center rounded-md bg-cyan-300/10 text-xs text-cyan-200">
                           {index + 1}
                         </span>
-                        <span>{step}</span>
+                        <span className="min-w-0 break-words">{step}</span>
                       </div>
                     ))}
                   </div>
@@ -646,8 +646,8 @@ function MetricCard({
         <Icon className={`size-4 ${tone}`} />
         {label}
       </div>
-      <p className="mt-2 break-words text-2xl font-semibold">{value}</p>
-      <p className="mt-1 text-xs text-zinc-500">{meta}</p>
+      <p className="mt-2 break-words text-xl font-semibold sm:text-2xl">{value}</p>
+      <p className="mt-1 break-words text-xs text-zinc-500">{meta}</p>
     </Panel>
   );
 }
@@ -656,7 +656,7 @@ function MapStep({ label, step }: { label: string; step: string }) {
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
       <p className="text-xs text-zinc-500">{step}</p>
-      <p className="mt-1 text-sm font-medium text-zinc-100">{label}</p>
+      <p className="mt-1 break-words text-sm font-medium text-zinc-100">{label}</p>
     </div>
   );
 }

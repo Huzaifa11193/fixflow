@@ -53,7 +53,7 @@ export function LandingPageContent() {
       <section className="relative min-h-screen">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_75%_10%,rgba(52,211,153,0.12),transparent_24%),linear-gradient(180deg,#070a0f_0%,#0b0d10_58%,#0f1318_100%)]" />
         <div className="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:48px_48px]" />
-        <div className="pointer-events-none absolute left-1/2 top-20 h-80 w-80 -translate-x-1/2 rounded-full border border-cyan-300/20 animate-[spin_18s_linear_infinite]" />
+        <div className="pointer-events-none absolute left-1/2 top-20 h-56 w-56 -translate-x-1/2 rounded-full border border-cyan-300/20 animate-[spin_18s_linear_infinite] sm:h-80 sm:w-80" />
         <div className="pointer-events-none absolute left-[12%] top-[32%] h-24 w-24 rounded-full border border-emerald-300/20 animate-[float_7s_ease-in-out_infinite]" />
         <div className="pointer-events-none absolute right-[10%] top-[18%] h-32 w-32 rounded-full border border-amber-300/20 animate-[float_9s_ease-in-out_infinite_reverse]" />
 
@@ -88,7 +88,7 @@ export function LandingPageContent() {
               <LogoMark className="size-5" />
               Built for daily developer errors
             </div>
-            <h1 className="mt-6 max-w-3xl animate-[fadeUp_800ms_ease-out_100ms_both] text-5xl font-semibold leading-tight text-white md:text-7xl">
+            <h1 className="mt-6 max-w-3xl animate-[fadeUp_800ms_ease-out_100ms_both] text-4xl font-semibold leading-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
               Paste an error. Get the cause, fix, and lesson.
             </h1>
             <p className="mt-6 max-w-2xl animate-[fadeUp_900ms_ease-out_200ms_both] text-base leading-7 text-zinc-400 md:text-lg">
@@ -112,7 +112,7 @@ export function LandingPageContent() {
                 <ShieldCheck className="size-4" />
               </Link>
             </div>
-            <div className="mt-10 grid max-w-xl animate-[fadeUp_900ms_ease-out_400ms_both] grid-cols-3 gap-3">
+            <div className="mt-10 grid max-w-xl animate-[fadeUp_900ms_ease-out_400ms_both] gap-3 sm:grid-cols-3">
               {stats.map(([value, label]) => (
                 <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3" key={label}>
                   <p className="text-2xl font-semibold text-white">{value}</p>
@@ -124,7 +124,7 @@ export function LandingPageContent() {
 
           <div className="relative animate-[fadeUp_900ms_ease-out_250ms_both]">
             <div className="absolute -inset-4 rounded-[24px] border border-cyan-300/20 bg-cyan-300/5 blur-2xl" />
-            <div className="relative rounded-lg border border-white/10 bg-[#11161d]/95 shadow-2xl shadow-black/40">
+            <div className="relative overflow-hidden rounded-lg border border-white/10 bg-[#11161d]/95 shadow-2xl shadow-black/40">
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
                   <Terminal className="size-4 text-cyan-300" />
@@ -134,11 +134,11 @@ export function LandingPageContent() {
                   live preview
                 </span>
               </div>
-              <div className="grid gap-4 p-4 xl:grid-cols-[1fr_0.9fr]">
-                <div className="rounded-lg border border-white/10 bg-[#080b10] p-4 font-mono text-sm leading-6 text-zinc-300">
+              <div className="grid min-w-0 gap-4 p-3 sm:p-4 xl:grid-cols-[minmax(0,1fr)_0.9fr]">
+                <div className="overflow-x-auto rounded-lg border border-white/10 bg-[#080b10] p-4 font-mono text-sm leading-6 text-zinc-300">
                   <p className="text-rose-300">Error: Hydration failed</p>
                   <p className="mt-3 text-zinc-500">at HeaderClock</p>
-                  <p className="text-zinc-500">src/components/header-clock.tsx:18</p>
+                  <p className="whitespace-nowrap text-zinc-500">src/components/header-clock.tsx:18</p>
                   <div className="mt-5 h-2 w-3/4 animate-pulse rounded-full bg-cyan-300/30" />
                   <div className="mt-3 h-2 w-1/2 animate-pulse rounded-full bg-emerald-300/25" />
                 </div>
@@ -153,7 +153,7 @@ export function LandingPageContent() {
                         <CheckCircle2 className="size-4 text-emerald-300" />
                         {label}
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-zinc-400">{text}</p>
+                      <p className="mt-2 break-words text-sm leading-6 text-zinc-400">{text}</p>
                     </div>
                   ))}
                 </div>
@@ -180,7 +180,7 @@ export function LandingPageContent() {
         <div className="mx-auto max-w-7xl">
           <div className="max-w-2xl">
             <p className="text-sm font-medium uppercase text-emerald-300">Workflow</p>
-            <h2 className="mt-3 text-3xl font-semibold text-white md:text-4xl">
+            <h2 className="mt-3 text-2xl font-semibold text-white sm:text-3xl md:text-4xl">
               A focused flow from confusion to confidence.
             </h2>
           </div>
@@ -226,7 +226,7 @@ export function LandingPageContent() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 rounded-lg border border-white/10 bg-cyan-300/10 p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-medium text-cyan-100">Ready to try the workspace?</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Start with the full FixFlow app UI.</h2>
+            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Start with the full FixFlow app UI.</h2>
           </div>
           <Link
             className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-cyan-400 px-2.5 text-sm font-medium text-[#071015] transition hover:bg-cyan-300"

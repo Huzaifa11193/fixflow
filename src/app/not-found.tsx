@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen bg-[#050507] px-6 py-8 text-white">
+    <main className="min-h-screen bg-[#050507] px-4 py-6 text-white sm:px-6 sm:py-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-5xl flex-col">
         <LogoLockup />
 
@@ -15,16 +15,16 @@ export default function NotFound() {
             <p className="text-sm font-medium uppercase tracking-[0.24em] text-cyan-300">
               Route not found
             </p>
-            <h1 className="max-w-3xl text-5xl font-semibold leading-tight text-white md:text-7xl">
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl md:text-7xl">
               This flow does not exist yet.
             </h1>
-            <p className="max-w-2xl text-lg leading-8 text-zinc-300">
+            <p className="max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8">
               Head back to the analyzer and paste the error you want FixFlow to
               diagnose.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
             <Link className={buttonVariants({ size: "lg" })} href="/app">
               Open analyzer
             </Link>

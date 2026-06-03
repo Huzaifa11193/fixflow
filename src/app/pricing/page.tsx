@@ -31,10 +31,10 @@ export default function PricingPage() {
       description="A simple free-first pricing model that matches the documentation: wide adoption, low monthly premium, and a lifetime option."
       title="Plans"
     >
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid min-w-0 gap-4 lg:grid-cols-3">
         {plans.map((plan) => (
           <Panel className="p-5" key={plan.name}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-white">{plan.name}</h2>
               {plan.name === "Premium" ? (
                 <Crown className="size-5 text-amber-300" />
@@ -42,16 +42,16 @@ export default function PricingPage() {
                 <Sparkles className="size-5 text-cyan-300" />
               )}
             </div>
-            <p className="mt-4 text-4xl font-semibold text-white">{plan.price}</p>
-            <p className="mt-3 min-h-16 text-sm leading-6 text-zinc-400">{plan.detail}</p>
+            <p className="mt-4 break-words text-3xl font-semibold text-white sm:text-4xl">{plan.price}</p>
+            <p className="mt-3 min-h-16 break-words text-sm leading-6 text-zinc-400">{plan.detail}</p>
             <Button className="mt-5 w-full bg-emerald-400 text-[#071015] hover:bg-emerald-300">
               Choose plan
             </Button>
             <div className="mt-5 space-y-3">
               {plan.features.map((feature) => (
-                <div className="flex gap-3 text-sm text-zinc-300" key={feature}>
+                <div className="flex gap-3 text-sm leading-6 text-zinc-300" key={feature}>
                   <Check className="size-4 text-emerald-300" />
-                  {feature}
+                  <span className="min-w-0 break-words">{feature}</span>
                 </div>
               ))}
             </div>

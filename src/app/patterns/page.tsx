@@ -74,7 +74,7 @@ export default function PatternsPage() {
           </Button>
         }
       >
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           <div className="grid gap-4 md:grid-cols-4">
             {patternCards.length > 0 ? (
               patternCards.slice(0, 4).map((item) => (
@@ -103,7 +103,7 @@ export default function PatternsPage() {
                   <p className="mt-4 text-3xl font-semibold text-white">
                     {item.count}
                   </p>
-                  <p className="mt-1 text-sm text-zinc-400">{item.label}</p>
+                  <p className="mt-1 break-words text-sm text-zinc-400">{item.label}</p>
                   <p className="mt-3 text-xs text-zinc-500">
                     {formatTrend(item.trend)} vs previous 7 days
                   </p>
@@ -114,13 +114,13 @@ export default function PatternsPage() {
             )}
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
             <Panel className="p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
                 <BarChart3 className="size-4 text-cyan-300" />
                 Weekly error map
               </div>
-              <div className="mt-6 grid h-80 grid-cols-7 items-end gap-3">
+              <div className="mt-6 grid h-64 grid-cols-7 items-end gap-2 sm:h-80 sm:gap-3">
                 {weeklyBars.map((bar) => (
                   <div className="flex h-full flex-col justify-end gap-2" key={bar.label}>
                     <div
@@ -158,7 +158,7 @@ export default function PatternsPage() {
             </Panel>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+          <div className="grid min-w-0 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
             <Panel className="p-4">
               <p className="text-sm font-medium text-zinc-200">Pattern health</p>
               <div className="mt-4 grid gap-3">
@@ -180,20 +180,23 @@ export default function PatternsPage() {
             <Panel>
               <div className="border-b border-white/10 p-4">
                 <p className="text-sm font-medium text-zinc-200">
-                  Recent examples for {selectedPattern || patternCards[0]?.label || "patterns"}
+                  Recent examples for{" "}
+                  <span className="break-words">
+                    {selectedPattern || patternCards[0]?.label || "patterns"}
+                  </span>
                 </p>
               </div>
               <div className="divide-y divide-white/10">
                 {selectedItems.length > 0 ? (
                   selectedItems.map((item) => (
                     <article className="p-4" key={item.id}>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <span
                           className={`size-2 rounded-full bg-current ${getSeverityTone(
                             item.analysis.severity
                           )}`}
                         />
-                        <h3 className="truncate font-medium text-white">
+                        <h3 className="min-w-0 truncate font-medium text-white">
                           {item.title}
                         </h3>
                       </div>
@@ -303,8 +306,8 @@ function formatTrend(value: number) {
 
 function HealthRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] p-3">
-      <span className="text-sm text-zinc-400">{label}</span>
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3">
+      <span className="min-w-0 break-words text-sm text-zinc-400">{label}</span>
       <span className="font-semibold text-white">{value}</span>
     </div>
   );

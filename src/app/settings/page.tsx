@@ -50,7 +50,7 @@ export default function SettingsPage() {
         description="Control model provider, data storage, privacy, cache behavior, and account settings."
         title="Settings"
       >
-        <div className="grid gap-6">
+        <div className="grid min-w-0 gap-6">
           {/* Account Settings */}
           <div>
             <h2 className="text-lg font-semibold text-white mb-4">Account</h2>
@@ -63,13 +63,13 @@ export default function SettingsPage() {
                     href={setting.href}
                     className="group rounded-lg border border-white/10 bg-white/[0.02] p-4 hover:bg-white/[0.05] transition"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="flex size-10 items-center justify-center rounded-lg bg-white/[0.05] group-hover:bg-white/[0.08] transition">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.05] transition group-hover:bg-white/[0.08]">
                         <Icon className={`size-5 ${setting.color}`} />
                       </div>
-                      <div className="flex-1">
+                      <div className="min-w-0 flex-1">
                         <p className="font-medium text-white">{setting.label}</p>
-                        <p className="text-sm text-zinc-400">{setting.description}</p>
+                        <p className="break-words text-sm leading-6 text-zinc-400">{setting.description}</p>
                       </div>
                       <div className="text-zinc-500 group-hover:text-zinc-300 transition">
                         →
@@ -83,13 +83,13 @@ export default function SettingsPage() {
                 onClick={logout}
                 className="group rounded-lg border border-rose-400/20 bg-rose-400/5 p-4 hover:bg-rose-400/10 transition text-left"
               >
-                <div className="flex items-start gap-4">
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-rose-400/10">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-rose-400/10">
                     <LogOut className="size-5 text-rose-400" />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-rose-200">Logout</p>
-                    <p className="text-sm text-rose-200/60">Sign out of your account</p>
+                    <p className="break-words text-sm text-rose-200/60">Sign out of your account</p>
                   </div>
                   <div className="text-rose-400/50 group-hover:text-rose-400 transition">
                     →
@@ -114,14 +114,14 @@ export default function SettingsPage() {
                   const Icon = item.icon;
 
                   return (
-                    <div className="grid gap-4 p-4 md:grid-cols-[1fr_auto]" key={item.label}>
+                    <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto]" key={item.label}>
                       <div className="flex gap-3">
-                        <div className="flex size-10 items-center justify-center rounded-lg bg-white/[0.05]">
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/[0.05]">
                           <Icon className="size-5 text-cyan-300" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="font-medium text-white">{item.label}</p>
-                          <p className="mt-1 text-sm text-zinc-400">{item.value}</p>
+                          <p className="mt-1 break-words text-sm leading-6 text-zinc-400">{item.value}</p>
                         </div>
                       </div>
                       <button

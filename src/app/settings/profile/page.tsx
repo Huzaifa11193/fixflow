@@ -25,7 +25,7 @@ export default function ProfilePage() {
         description="View and manage your account information and profile details."
         title="Account Profile"
       >
-        <div className="grid gap-6 max-w-2xl">
+        <div className="grid max-w-2xl gap-6">
           <Panel>
             <div className="border-b border-white/10 p-4">
               <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
@@ -34,13 +34,13 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="space-y-6 p-4 sm:p-6">
               {/* Avatar */}
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-cyan-400 flex items-center justify-center text-2xl font-bold text-[#071015]">
+                <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-cyan-400 text-2xl font-bold text-[#071015] sm:size-16">
                   {user?.email?.[0].toUpperCase()}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-zinc-400">Profile Avatar</p>
                   <p className="text-xs text-zinc-500 mt-1">
                     Generated from your email
@@ -69,12 +69,12 @@ export default function ProfilePage() {
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Email Address
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   <input
                     type="email"
                     value={user?.email || ""}
                     disabled
-                    className="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.04] text-zinc-100 outline-none"
+                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-zinc-100 outline-none"
                   />
                   <button
                     onClick={() => copyToClipboard(user?.email || "")}
@@ -94,12 +94,12 @@ export default function ProfilePage() {
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   User ID
                 </label>
-                <div className="flex gap-2">
+                <div className="flex min-w-0 gap-2">
                   <input
                     type="text"
                     value={user?.id || ""}
                     disabled
-                    className="flex-1 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.04] text-zinc-400 outline-none text-xs font-mono"
+                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 font-mono text-xs text-zinc-400 outline-none"
                   />
                   <button
                     onClick={() => copyToClipboard(user?.id || "")}
@@ -122,9 +122,9 @@ export default function ProfilePage() {
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Account Created
                 </label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-white/10 bg-white/[0.04]">
+                <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
                   <Calendar className="size-4 text-zinc-400" />
-                  <span className="text-zinc-300">
+                  <span className="min-w-0 break-words text-zinc-300">
                     {user?.created_at
                       ? new Date(user.created_at).toLocaleDateString("en-US", {
                           year: "numeric",
@@ -160,7 +160,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="p-6 space-y-3">
+            <div className="space-y-3 p-4 sm:p-6">
               <Button
                 variant="outline"
                 className="w-full justify-start gap-2 border-white/10 bg-white/[0.04] text-zinc-300 hover:bg-white/[0.08]"

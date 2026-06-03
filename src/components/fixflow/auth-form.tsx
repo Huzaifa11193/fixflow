@@ -151,7 +151,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         </Button>
       </form>
 
-      <div className="mt-6 flex items-center justify-between text-sm">
+      <div className="mt-6 flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between">
         <span className="text-zinc-500">
           {isSignUp ? "Already have an account?" : "New to FixFlow?"}
         </span>
