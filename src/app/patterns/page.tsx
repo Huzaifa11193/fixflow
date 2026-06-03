@@ -1,11 +1,15 @@
+"use client";
+
 import { AlertTriangle, BarChart3, TrendingDown, TrendingUp } from "lucide-react";
 
 import { AppShell, Panel } from "@/components/fixflow/app-shell";
 import { patternStats } from "@/lib/fixflow-data";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export default function PatternsPage() {
   return (
-    <AppShell
+    <ProtectedRoute>
+      <AppShell
       active="Patterns"
       description="Spot repeated mistakes before they become habits. This view turns history into proactive prevention."
       title="Patterns and prevention"
@@ -68,5 +72,6 @@ export default function PatternsPage() {
         </div>
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

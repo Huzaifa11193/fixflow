@@ -1,12 +1,16 @@
+"use client";
+
 import { Check, Code2, Plug, Zap } from "lucide-react";
 
 import { AppShell, Panel } from "@/components/fixflow/app-shell";
 import { Button } from "@/components/ui/button";
 import { integrations } from "@/lib/fixflow-data";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export default function IntegrationsPage() {
   return (
-    <AppShell
+    <ProtectedRoute>
+      <AppShell
       active="Integrations"
       description="Design surface for editor handoff, project context, and one-click apply. These are staged for post-MVP while the web workflow comes first."
       title="Editor integrations"
@@ -52,5 +56,6 @@ export default function IntegrationsPage() {
         </Panel>
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

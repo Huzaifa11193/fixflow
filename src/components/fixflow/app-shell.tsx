@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   BarChart3,
@@ -9,11 +11,22 @@ import {
   Settings,
   Sparkles,
   Terminal,
+  LogOut,
+  User,
+  KeyRound,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { LogoLockup } from "@/components/fixflow/logo";
-import { historyItems } from "@/lib/fixflow-data";
+import { useAuth } from "@/lib/auth-context";
+import {
+  formatHistoryTime,
+  getSeverityTone,
+  HistoryItem,
+  loadHistory,
+  subscribeToHistory,
+} from "@/lib/history";
 
 type AppShellProps = {
   active: string;
@@ -42,6 +55,27 @@ export function AppShell({
   description,
   action,
 }: AppShellProps) {
+  const { user, logout } = useAuth();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [recentHistory, setRecentHistory] = useState<HistoryItem[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refreshHistory() {
+      const items = await loadHistory(user?.id);
+      if (!cancelled) setRecentHistory(items.slice(0, 3));
+    }
+
+    void refreshHistory();
+    const unsubscribe = subscribeToHistory(() => void refreshHistory());
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [user?.id]);
+
   return (
     <main className="min-h-screen bg-[#0b0d10] text-zinc-100">
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -91,28 +125,38 @@ export function AppShell({
                   Recent fixes
                 </div>
                 <div className="mt-3 space-y-2">
-                  {historyItems.slice(0, 3).map((item) => (
+                  {recentHistory.length > 0 ? (
+                    recentHistory.map((item) => (
                     <Link
                       className="group grid grid-cols-[4px_1fr] items-center gap-3 rounded-lg px-2 py-2.5 transition hover:bg-white/[0.04]"
                       href="/history"
-                      key={item.title}
+                      key={item.id}
                     >
-                      <span className={`h-8 rounded-full bg-current ${item.tone}`} />
+                      <span
+                        className={`h-8 rounded-full bg-current ${getSeverityTone(
+                          item.analysis.severity
+                        )}`}
+                      />
                       <span className="min-w-0">
                         <span className="block truncate text-xs font-medium text-zinc-200">
                           {item.title}
                         </span>
                         <span className="mt-1 block text-[11px] text-zinc-500">
-                          {item.meta}
+                          {item.analysis.category} - {formatHistoryTime(item.createdAt)}
                         </span>
                       </span>
                     </Link>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-3 text-xs leading-5 text-zinc-500">
+                      Your analyzed errors will appear here.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-white/10 p-4">
+            <div className="border-t border-white/10 p-4 space-y-3">
               <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-3">
                 <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
                   <Brain className="size-4" />
@@ -122,6 +166,56 @@ export function AppShell({
                   Basic error patterns and the last five fixes stay available offline.
                 </p>
               </div>
+
+              {user && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="w-full flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm hover:bg-white/[0.08] transition"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-cyan-400 flex items-center justify-center text-[#071015] text-xs font-bold">
+                      {user.email?.[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <p className="text-xs font-medium truncate text-white">
+                        {user.user_metadata?.full_name || user.email}
+                      </p>
+                      <p className="text-[10px] text-zinc-400 truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute bottom-full mb-2 w-full rounded-lg border border-white/10 bg-[#0f1318] shadow-lg z-50">
+                      <Link
+                        href="/settings"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/[0.08] transition rounded-t-lg"
+                      >
+                        <User className="size-4" />
+                        Profile
+                      </Link>
+                      <Link
+                        href="/settings/change-password"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-300 hover:bg-white/[0.08] transition"
+                      >
+                        <KeyRound className="size-4" />
+                        Change Password
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          await logout();
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-white/[0.08] transition rounded-b-lg border-t border-white/10"
+                      >
+                        <LogOut className="size-4" />
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </aside>

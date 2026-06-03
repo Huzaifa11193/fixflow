@@ -1,12 +1,16 @@
-import { BookOpen, CheckCircle2, PlayCircle } from "lucide-react";
+"use client";
+
+import { BookOpen, PlayCircle, CheckCircle2 } from "lucide-react";
 
 import { AppShell, Panel } from "@/components/fixflow/app-shell";
 import { Button } from "@/components/ui/button";
 import { lessons } from "@/lib/fixflow-data";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export default function LearningPage() {
   return (
-    <AppShell
+    <ProtectedRoute>
+      <AppShell
       active="Learning"
       description="After each fix, FixFlow turns the bug into a short lesson so developers understand the cause and avoid repeating it."
       title="Learning mode"
@@ -54,5 +58,6 @@ export default function LearningPage() {
         </Panel>
       </div>
     </AppShell>
+    </ProtectedRoute>
   );
 }

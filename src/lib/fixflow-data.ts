@@ -60,7 +60,39 @@ export const solutions = [
   },
 ];
 
-export const frameworks = ["Auto", "React", "Next.js", "Node", "Python"];
+export const frameworks = [
+  "Auto",
+  "JavaScript",
+  "TypeScript",
+  "Node",
+  "React",
+  "Next.js",
+  "Vue",
+  "Nuxt",
+  "Svelte",
+  "Angular",
+  "Python",
+  "Django",
+  "Flask",
+  "Ruby",
+  "Rails",
+  "Java",
+  "Spring",
+  "Go",
+  "Rust",
+  "PHP",
+  "Laravel",
+  "C#",
+  "Dotnet",
+  "Swift",
+  "Kotlin",
+  "Android",
+  "iOS",
+  "Tailwind",
+  "CSS",
+  "Docker",
+  "Kubernetes",
+];
 
 export const patternStats = [
   { label: "Hydration", count: "14", trend: "+18%", tone: "bg-amber-300" },
