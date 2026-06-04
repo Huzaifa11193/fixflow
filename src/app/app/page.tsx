@@ -2,34 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AlertTriangle,
-  ArrowRight,
   BadgeCheck,
-  Brain,
-  Check,
+  CheckCircle2,
+  ChevronDown,
   Clipboard,
   Clock3,
   Copy,
   FileCode2,
-  Flame,
-  GitBranch,
-  Lightbulb,
   Loader2,
   Play,
-  Target,
+  RotateCcw,
+  SearchCheck,
+  ShieldCheck,
   Terminal,
 } from "lucide-react";
 
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell, Panel } from "@/components/fixflow/app-shell";
 import { Button } from "@/components/ui/button";
-import { frameworks } from "@/lib/fixflow-data";
 import { useAuth } from "@/lib/auth-context";
 import { detectFramework } from "@/lib/detect";
-import {
-  HistoryAnalysis,
-  saveHistoryItem,
-} from "@/lib/history";
+import { frameworks } from "@/lib/fixflow-data";
+import { HistoryAnalysis, saveHistoryItem } from "@/lib/history";
 
 type Analysis = HistoryAnalysis;
 
@@ -37,6 +31,8 @@ type Detected = {
   language?: string;
   framework?: string;
 };
+
+type DetailSection = "steps" | "fixes" | "why" | "learn";
 
 const starterError = `Warning: Text content did not match. Server: "12:00" Client: "12:01"
 
@@ -56,11 +52,21 @@ export default function AnalyzePage() {
   const [historyWarning, setHistoryWarning] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState("");
-  const [activeLesson, setActiveLesson] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<DetailSection>("steps");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const { user } = useAuth();
 
   const previewDetection = useMemo(() => detectFramework(input), [input]);
+  const bestFix = analysis?.solutions?.[0];
+  const displayedFramework =
+    selectedFramework !== "Auto"
+      ? selectedFramework
+      : detected.framework ||
+        previewDetection.framework ||
+        previewDetection.language ||
+        "Auto";
+  const displayedLanguage =
+    detected.language || previewDetection.language || "Waiting for input";
 
   const handleAnalyze = useCallback(async () => {
     const text = input.trim();
@@ -77,7 +83,7 @@ export default function AnalyzePage() {
     setLoading(true);
     setAnalysis(null);
 
-    const frameworkHint =
+    const selectedHint =
       selectedFramework !== "Auto"
         ? selectedFramework
         : previewDetection.framework || previewDetection.language;
@@ -86,7 +92,7 @@ export default function AnalyzePage() {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, framework: frameworkHint }),
+        body: JSON.stringify({ text, framework: selectedHint }),
       });
       const rawResponse = await response.text();
       let data: {
@@ -111,16 +117,16 @@ export default function AnalyzePage() {
       }
 
       const nextAnalysis = normalizeAnalysis(data.analysis);
-      const nextDetected = (data.detected as Detected | undefined) ?? previewDetection;
+      const nextDetected = data.detected ?? previewDetection;
 
       setAnalysis(nextAnalysis);
       setDetected(nextDetected);
-      setActiveLesson(nextAnalysis.learningTips?.[0] || null);
+      setOpenSection("steps");
 
       try {
         await saveHistoryItem({
           analysis: nextAnalysis,
-          framework: frameworkHint,
+          framework: selectedHint,
           input: text,
           userId: user?.id,
         });
@@ -157,42 +163,36 @@ export default function AnalyzePage() {
   async function pasteFromClipboard() {
     try {
       const text = await navigator.clipboard.readText();
-      setInput((previous) => (previous.trim() ? `${previous}\n${text}` : text));
+      setInput(text);
+      setDetected(detectFramework(text));
       setError("");
     } catch {
       setError("Clipboard access was blocked by the browser.");
     }
   }
 
-  const displayedFramework =
-    selectedFramework !== "Auto"
-      ? selectedFramework
-      : detected.framework ||
-        previewDetection.framework ||
-        previewDetection.language ||
-        "Auto";
-
-  const displayedLanguage =
-    detected.language || previewDetection.language || "Waiting for input";
+  function resetSample() {
+    setInput(starterError);
+    setDetected(detectFramework(starterError));
+    setAnalysis(null);
+    setError("");
+    setHistoryWarning("");
+  }
 
   return (
     <ProtectedRoute>
       <AppShell
         active="Analyze"
-        description="Paste any stack trace, warning, dependency error, or failing snippet and get a structured, ranked fix plan."
-        title="Error analysis workspace"
+        description="Paste an error and get the next best fix without sorting through noise."
+        title="Analyze an error"
         action={
           <>
             <Button
               className="gap-2 border-white/10 bg-white/[0.04] text-zinc-200 hover:bg-white/[0.08]"
-              onClick={() => {
-                setInput(starterError);
-                setAnalysis(null);
-                setError("");
-              }}
+              onClick={resetSample}
               variant="outline"
             >
-              <Clock3 className="size-4" />
+              <RotateCcw className="size-4" />
               Sample
             </Button>
             <Button
@@ -210,378 +210,440 @@ export default function AnalyzePage() {
           </>
         }
       >
-        <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div className="min-w-0">
-            <div className="flex flex-wrap gap-2">
-              {frameworks.map((framework) => {
-                const isSelected = selectedFramework === framework;
-
-                return (
-                  <button
-                    className={`h-8 rounded-lg border px-3 text-sm transition ${
-                      isSelected
-                        ? "border-cyan-300/60 bg-cyan-300/10 text-cyan-100"
-                        : "border-white/10 bg-white/[0.03] text-zinc-300 hover:border-cyan-300/50 hover:text-cyan-100"
-                    }`}
-                    key={framework}
-                    onClick={() => setSelectedFramework(framework)}
-                    type="button"
-                  >
-                    {framework}
-                  </button>
-                );
-              })}
-            </div>
-
-            <Panel className="mt-4">
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-                  <Terminal className="size-4 text-cyan-300" />
-                  Smart Paste
+        <div className="mx-auto grid w-full max-w-6xl items-start gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,0.75fr)]">
+          <section className="grid min-w-0 content-start gap-4">
+            <Panel className="overflow-hidden">
+              <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+                    <Terminal className="size-4 text-cyan-300" />
+                    Paste your error
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-zinc-500">
+                    Stack traces, terminal errors, warnings, or failing snippets all work.
+                  </p>
                 </div>
-                <Button
-                  aria-label="Paste from clipboard"
-                  className="text-zinc-400 hover:text-zinc-100"
-                  onClick={pasteFromClipboard}
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <Clipboard className="size-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <select
+                    aria-label="Framework"
+                    className="h-9 max-w-[190px] rounded-lg border border-white/10 bg-[#11161d] px-3 text-sm text-zinc-200 outline-none transition focus:border-cyan-300/60"
+                    onChange={(event) => setSelectedFramework(event.target.value)}
+                    value={selectedFramework}
+                  >
+                    {frameworks.map((framework) => (
+                      <option key={framework}>{framework}</option>
+                    ))}
+                  </select>
+                  <Button
+                    aria-label="Paste from clipboard"
+                    className="text-zinc-400 hover:text-zinc-100"
+                    onClick={pasteFromClipboard}
+                    size="icon-sm"
+                    variant="ghost"
+                  >
+                    <Clipboard className="size-4" />
+                  </Button>
+                </div>
               </div>
+
               <textarea
-                className="min-h-[320px] w-full resize-none bg-transparent p-3 font-mono text-sm leading-6 text-zinc-200 outline-none placeholder:text-zinc-600 sm:min-h-[390px] sm:p-4"
+                className="h-[280px] w-full resize-y bg-transparent p-4 font-mono text-sm leading-6 text-zinc-200 outline-none placeholder:text-zinc-600 sm:h-[340px] xl:h-[380px]"
                 onChange={(event) => {
                   setInput(event.target.value);
                   setDetected(detectFramework(event.target.value));
                 }}
-                placeholder="Paste an error, warning, stack trace, or failing snippet..."
+                placeholder="Paste the exact error here..."
                 ref={textareaRef}
                 spellCheck={false}
                 value={input}
               />
+
+              <div className="flex flex-col gap-3 border-t border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="grid gap-1 text-xs text-zinc-500">
+                  <span>
+                    Detected:{" "}
+                    <strong className="font-medium text-zinc-300">
+                      {displayedFramework}
+                    </strong>
+                  </span>
+                  <span>{displayedLanguage}</span>
+                </div>
+                <Button
+                  className="h-11 gap-2 bg-emerald-400 px-5 text-[#071015] hover:bg-emerald-300"
+                  disabled={loading}
+                  onClick={handleAnalyze}
+                >
+                  {loading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <SearchCheck className="size-4" />
+                  )}
+                  {loading ? "Analyzing..." : "Find best fix"}
+                </Button>
+              </div>
             </Panel>
 
-            {error ? (
-              <div className="mt-4 rounded-lg border border-rose-300/20 bg-rose-300/10 p-3 text-sm leading-6 text-rose-100">
-                {error}
-              </div>
-            ) : null}
+            <StatusMessage
+              copied={copied}
+              error={error}
+              historyWarning={historyWarning}
+            />
+          </section>
 
-            {historyWarning ? (
-              <div className="mt-4 rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm leading-6 text-amber-100">
-                {historyWarning}
-              </div>
-            ) : null}
-
-            {copied ? (
-              <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100">
-                Copied {copied}.
-              </div>
-            ) : null}
-
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <MetricCard
-                icon={Brain}
-                label="Detected"
-                meta={displayedLanguage}
-                tone="text-cyan-300"
-                value={displayedFramework}
-              />
-              <MetricCard
-                icon={Flame}
-                label="Severity"
-                meta={analysis ? analysis.category : "No analysis yet"}
-                tone="text-amber-300"
-                value={analysis?.severity ?? "-"}
-              />
-              <MetricCard
-                icon={BadgeCheck}
-                label="Fix time"
-                meta={analysis ? `${analysis.confidence} confidence` : "Estimated after analysis"}
-                tone="text-emerald-300"
-                value={analysis?.fixTime ?? "-"}
-              />
-            </div>
-          </div>
-
-          <div className="grid min-w-0 gap-4">
-            <Panel>
-              <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-center md:justify-between">
-                <div>
+          <section className="grid min-w-0 content-start gap-4">
+            <Panel className="overflow-hidden">
+              <div className="border-b border-white/10 p-4">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-200">
-                    <Check className="size-4" />
-                    {analysis ? "Analysis complete" : "Ready"}
+                    <CheckCircle2 className="size-4" />
+                    {analysis ? "Best answer" : "Waiting for analysis"}
                   </div>
-                  <h2 className="mt-2 text-lg font-semibold text-white">
-                    {analysis?.rootCause ?? "Run analysis to generate a fix plan."}
-                  </h2>
-                </div>
-                <Button
-                  aria-label="Copy analysis"
-                  className="self-start text-zinc-400 hover:text-zinc-100 md:self-auto"
-                  disabled={!analysis}
-                  onClick={() =>
-                    analysis
-                      ? copyText(JSON.stringify(analysis, null, 2), "analysis")
-                      : undefined
-                  }
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <Copy className="size-4" />
-                </Button>
-              </div>
-              <div className="grid min-w-0 gap-4 p-4 md:grid-cols-[minmax(0,1fr)_220px]">
-                <p className="break-words text-sm leading-6 text-zinc-300">
-                  {analysis?.explanation ??
-                    "FixFlow will explain what happened, why it happened, and which fix is most likely to work."}
-                </p>
-                <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-cyan-100">
-                    <Lightbulb className="size-4" />
-                    Prevention
-                  </div>
-                  <p className="mt-2 break-words text-xs leading-5 text-cyan-100/75">
-                    {analysis?.prevention ??
-                      "Prevention tips appear here after analysis."}
-                  </p>
-                </div>
-              </div>
-              {analysis ? (
-                <div className="grid gap-3 border-t border-white/10 p-4 md:grid-cols-2">
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs font-medium uppercase text-zinc-500">
-                      Impact
-                    </p>
-                    <p className="mt-2 break-words text-sm leading-6 text-zinc-300">
-                      {analysis.impact || "Impact estimate will appear here."}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                    <p className="text-xs font-medium uppercase text-zinc-500">
-                      Confidence reason
-                    </p>
-                    <p className="mt-2 break-words text-sm leading-6 text-zinc-300">
-                      {analysis.confidenceReason ||
-                        "Confidence explanation will appear here."}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </Panel>
-
-            <Panel className="p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-                <Target className="size-4 text-cyan-300" />
-                Diagnostic signals
-              </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {(analysis?.diagnostics ?? [
-                  { label: "Pattern", value: "Waiting for analysis" },
-                  { label: "Evidence", value: "Paste a complete stack trace" },
-                ]).map((item) => (
-                  <div
-                    className="rounded-lg border border-white/10 bg-white/[0.03] p-3"
-                    key={`${item.label}-${item.value}`}
+                  <Button
+                    aria-label="Copy full analysis"
+                    className="text-zinc-400 hover:text-zinc-100"
+                    disabled={!analysis}
+                    onClick={() =>
+                      analysis
+                        ? copyText(JSON.stringify(analysis, null, 2), "analysis")
+                        : undefined
+                    }
+                    size="icon-sm"
+                    variant="ghost"
                   >
-                    <p className="text-xs text-zinc-500">{item.label}</p>
-                    <p className="mt-1 break-words text-sm font-medium text-zinc-100">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3">
-                <p className="text-xs font-medium uppercase text-emerald-100/70">
-                  Next actions
-                </p>
-                <div className="mt-3 grid gap-2">
-                  {(analysis?.nextActions ?? [
-                    "Analyze an error to get a prioritized next step.",
-                    "Apply only one fix at a time, then re-run the app.",
-                  ]).map((action, index) => (
-                    <div
-                      className="grid grid-cols-[24px_1fr] gap-2 text-sm leading-6 text-emerald-100/85"
-                      key={action}
-                    >
-                      <span className="flex size-6 items-center justify-center rounded-md bg-emerald-300/15 text-xs">
-                        {index + 1}
-                      </span>
-                      <span className="min-w-0 break-words">{action}</span>
-                    </div>
-                  ))}
+                    <Copy className="size-4" />
+                  </Button>
                 </div>
-              </div>
-            </Panel>
-
-            <Panel className="p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-                <GitBranch className="size-4 text-amber-300" />
-                Visual error map
-              </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
-                {(analysis?.errorMap ?? [
-                  "Paste error",
-                  "Detect pattern",
-                  "Generate fix plan",
-                ]).map((step, index, items) => (
-                  <div className="contents" key={step}>
-                    <MapStep label={step} step={`Step ${index + 1}`} />
-                    {index < items.length - 1 ? (
-                      index === 1 ? (
-                        <AlertTriangle className="hidden size-5 text-amber-300 md:block" />
-                      ) : (
-                        <ArrowRight className="hidden size-5 text-zinc-600 md:block" />
-                      )
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </Panel>
-
-            <section className="grid gap-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-sm font-medium uppercase text-zinc-500">
-                  Ranked fixes
+                <h2 className="mt-3 break-words text-lg font-semibold leading-7 text-white">
+                  {analysis?.rootCause ?? "Paste an error, then run analysis."}
                 </h2>
-                <Button
-                  className="gap-2 text-zinc-300"
-                  disabled={!analysis?.solutions?.length}
-                  onClick={() =>
-                    analysis
-                      ? copyText(
-                          analysis.solutions
-                            .map((solution) => `${solution.rank}. ${solution.title}\n${solution.snippet}`)
-                            .join("\n\n"),
-                          "all fixes"
-                        )
-                      : undefined
-                  }
-                  size="sm"
-                  variant="ghost"
-                >
-                  <Copy className="size-3.5" />
-                  Copy all
-                </Button>
+                <p className="mt-3 break-words text-sm leading-6 text-zinc-400">
+                  {analysis?.explanation ??
+                    "FixFlow will summarize the cause, show the best next step, and keep deeper details tucked away until you need them."}
+                </p>
               </div>
 
-              {analysis?.solutions?.length ? (
-                analysis.solutions.map((solution) => (
-                  <Panel key={solution.rank}>
-                    <div className="flex flex-col gap-3 border-b border-white/10 p-4 md:flex-row md:items-start md:justify-between">
-                      <div className="flex gap-3">
-                        <span className="flex size-9 items-center justify-center rounded-lg bg-white/[0.06] font-mono text-sm text-cyan-200">
-                          {solution.rank}
-                        </span>
-                        <div>
-                          <h3 className="font-medium text-white">
-                            {solution.title}
-                          </h3>
-                          <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                            <span className="rounded-md bg-emerald-400/10 px-2 py-1 text-emerald-200">
-                              {solution.confidence} success
-                            </span>
-                            <span className="rounded-md bg-white/[0.05] px-2 py-1 text-zinc-400">
-                              {solution.effort} effort
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        aria-label={`Copy fix ${solution.rank}`}
-                        className="self-start text-zinc-400 hover:text-zinc-100"
-                        onClick={() => copyText(solution.snippet, `fix ${solution.rank}`)}
-                        size="icon-sm"
-                        variant="ghost"
-                      >
-                        <Copy className="size-4" />
-                      </Button>
-                    </div>
-                    <pre className="max-w-full overflow-x-auto whitespace-pre p-4 text-sm leading-6 text-zinc-300">
-                      <code>{solution.snippet}</code>
-                    </pre>
-                  </Panel>
-                ))
-              ) : (
-                <Panel className="p-4 text-sm leading-6 text-zinc-400">
-                  Ranked fixes will appear after a successful analysis.
-                </Panel>
-              )}
-            </section>
+              <div className="grid grid-cols-3 border-b border-white/10">
+                <SummaryStat
+                  icon={BadgeCheck}
+                  label="Confidence"
+                  value={analysis?.confidence ?? "-"}
+                />
+                <SummaryStat
+                  icon={Clock3}
+                  label="Fix time"
+                  value={analysis?.fixTime ?? "-"}
+                />
+                <SummaryStat
+                  icon={ShieldCheck}
+                  label="Severity"
+                  value={analysis?.severity ?? "-"}
+                />
+              </div>
 
-            <Panel className="p-4">
-              <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-                <FileCode2 className="size-4 text-emerald-300" />
-                Learning mode
-              </div>
-              <div className="mt-4 grid gap-3 md:grid-cols-3">
-                {(analysis?.learningTips ?? [
-                  "Read the first stack frame in your code.",
-                  "Compare the failing value with the expected value.",
-                  "Save the fix pattern for next time.",
-                ]).map((lesson, index) => (
-                  <button
-                    className={`grid min-h-20 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 rounded-lg border p-3 text-left text-sm transition ${
-                      activeLesson === lesson
-                        ? "border-emerald-300/50 bg-emerald-300/10 text-emerald-50"
-                        : "border-white/10 bg-white/[0.03] text-zinc-200 hover:border-emerald-300/40 hover:bg-emerald-300/10"
-                    }`}
-                    key={lesson}
-                    onClick={() => setActiveLesson(lesson)}
-                    type="button"
-                  >
-                    <span className="min-w-0 break-words">{lesson}</span>
-                    <span className="mr-2 rounded-md bg-white/[0.05] px-2 py-1 text-xs text-zinc-400">
-                      {index + 1}
-                    </span>
-                    <FileCode2 className="size-4 text-zinc-500" />
-                  </button>
-                ))}
-              </div>
-              {activeLesson ? (
-                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-xs font-medium uppercase text-emerald-300">
-                    Mini lesson
+              <div className="p-4">
+                <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-4">
+                  <p className="text-xs font-medium uppercase text-emerald-100/70">
+                    Try this first
                   </p>
-                  <h3 className="mt-2 font-semibold text-white">{activeLesson}</h3>
-                  <div className="mt-3 grid gap-2 text-sm leading-6 text-zinc-300">
-                    {buildLessonSteps(activeLesson, analysis).map((step, index) => (
-                      <div
-                        className="grid grid-cols-[26px_1fr] gap-3 rounded-lg border border-white/10 bg-[#11161d] p-3"
-                        key={step}
-                      >
-                        <span className="flex size-6 items-center justify-center rounded-md bg-cyan-300/10 text-xs text-cyan-200">
-                          {index + 1}
+                  <h3 className="mt-2 break-words font-semibold text-white">
+                    {bestFix?.title ?? "Your top fix will appear here."}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-emerald-100/80">
+                    {analysis?.nextActions?.[0] ??
+                      "Run analysis to get a clear next action."}
+                  </p>
+                  {bestFix ? (
+                    <div className="mt-4 overflow-hidden rounded-lg border border-white/10 bg-[#0f1318]">
+                      <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+                        <span className="text-xs text-zinc-500">
+                          Suggested patch or command
                         </span>
-                        <span className="min-w-0 break-words">{step}</span>
+                        <Button
+                          aria-label="Copy best fix"
+                          className="text-zinc-400 hover:text-zinc-100"
+                          onClick={() => copyText(bestFix.snippet, "best fix")}
+                          size="icon-sm"
+                          variant="ghost"
+                        >
+                          <Copy className="size-4" />
+                        </Button>
                       </div>
-                    ))}
-                  </div>
+                      <pre className="max-h-64 overflow-auto whitespace-pre p-3 text-sm leading-6 text-zinc-300">
+                        <code>{bestFix.snippet}</code>
+                      </pre>
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
             </Panel>
-          </div>
+
+            <DetailAccordion
+              analysis={analysis}
+              copied={copied}
+              copyText={copyText}
+              openSection={openSection}
+              setOpenSection={setOpenSection}
+            />
+          </section>
         </div>
       </AppShell>
     </ProtectedRoute>
   );
 }
 
-function buildLessonSteps(lesson: string, analysis: Analysis | null) {
-  if (!analysis) {
-    return [
-      "Start by identifying the exact error message.",
-      "Find the first stack frame that points to your code.",
-      "Apply one small fix, then re-run the app.",
-    ];
+function StatusMessage({
+  copied,
+  error,
+  historyWarning,
+}: {
+  copied: string;
+  error: string;
+  historyWarning: string;
+}) {
+  if (error) {
+    return (
+      <div className="rounded-lg border border-rose-300/20 bg-rose-300/10 p-3 text-sm leading-6 text-rose-100">
+        {error}
+      </div>
+    );
   }
 
-  return [
-    `Why it matters: ${analysis.impact || analysis.explanation}`,
-    `What to inspect: ${analysis.rootCause}`,
-    `Try next: ${analysis.nextActions?.[0] || analysis.solutions[0]?.title || lesson}`,
-  ];
+  if (historyWarning) {
+    return (
+      <div className="rounded-lg border border-amber-300/20 bg-amber-300/10 p-3 text-sm leading-6 text-amber-100">
+        {historyWarning}
+      </div>
+    );
+  }
+
+  if (copied) {
+    return (
+      <div className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-3 text-sm leading-6 text-emerald-100">
+        Copied {copied}.
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function DetailAccordion({
+  analysis,
+  copied,
+  copyText,
+  openSection,
+  setOpenSection,
+}: {
+  analysis: Analysis | null;
+  copied: string;
+  copyText: (value: string, label: string) => Promise<void>;
+  openSection: DetailSection;
+  setOpenSection: (section: DetailSection) => void;
+}) {
+  return (
+    <div className="grid gap-3">
+      <AccordionSection
+        isOpen={openSection === "steps"}
+        onToggle={() => setOpenSection(openSection === "steps" ? "fixes" : "steps")}
+        title="Next steps"
+      >
+        <div className="grid gap-2">
+          {(analysis?.nextActions ?? [
+            "Analyze an error to get the next step.",
+            "Apply one fix at a time.",
+            "Run the app again and compare the new output.",
+          ]).map((action, index) => (
+            <div
+              className="grid grid-cols-[28px_1fr] gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm leading-6 text-zinc-300"
+              key={action}
+            >
+              <span className="flex size-7 items-center justify-center rounded-md bg-emerald-300/10 text-xs font-medium text-emerald-200">
+                {index + 1}
+              </span>
+              <span className="min-w-0 break-words">{action}</span>
+            </div>
+          ))}
+        </div>
+      </AccordionSection>
+
+      <AccordionSection
+        isOpen={openSection === "fixes"}
+        onToggle={() => setOpenSection(openSection === "fixes" ? "why" : "fixes")}
+        title="Other fixes"
+      >
+        <div className="grid gap-3">
+          {analysis?.solutions?.length ? (
+            analysis.solutions.map((solution) => (
+              <div
+                className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]"
+                key={solution.rank}
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-white/10 p-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-medium text-white">
+                      {solution.rank}. {solution.title}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {solution.confidence} confidence - {solution.effort} effort
+                    </p>
+                  </div>
+                  <Button
+                    aria-label={`Copy fix ${solution.rank}`}
+                    className="text-zinc-400 hover:text-zinc-100"
+                    onClick={() => copyText(solution.snippet, `fix ${solution.rank}`)}
+                    size="icon-sm"
+                    variant="ghost"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+                <pre className="max-h-48 overflow-auto whitespace-pre p-3 text-sm leading-6 text-zinc-300">
+                  <code>{solution.snippet}</code>
+                </pre>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm leading-6 text-zinc-400">
+              Additional fixes will appear after analysis.
+            </p>
+          )}
+          {copied ? null : null}
+        </div>
+      </AccordionSection>
+
+      <AccordionSection
+        isOpen={openSection === "why"}
+        onToggle={() => setOpenSection(openSection === "why" ? "learn" : "why")}
+        title="Why it happened"
+      >
+        <div className="grid gap-3">
+          <InfoBlock
+            label="Impact"
+            value={analysis?.impact || "Impact will appear after analysis."}
+          />
+          <InfoBlock
+            label="Prevention"
+            value={
+              analysis?.prevention ||
+              "Prevention tips will appear after analysis."
+            }
+          />
+          <InfoBlock
+            label="Confidence"
+            value={
+              analysis?.confidenceReason ||
+              "Confidence reasoning will appear after analysis."
+            }
+          />
+        </div>
+      </AccordionSection>
+
+      <AccordionSection
+        isOpen={openSection === "learn"}
+        onToggle={() => setOpenSection(openSection === "learn" ? "steps" : "learn")}
+        title="Learn the pattern"
+      >
+        <div className="grid gap-3">
+          <div className="grid gap-2">
+            {(analysis?.errorMap ?? [
+              "Paste error",
+              "Detect pattern",
+              "Apply best fix",
+            ]).map((step, index) => (
+              <div
+                className="grid grid-cols-[28px_1fr] gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-3 text-sm leading-6 text-zinc-300"
+                key={`${step}-${index}`}
+              >
+                <span className="flex size-7 items-center justify-center rounded-md bg-cyan-300/10 text-xs font-medium text-cyan-200">
+                  {index + 1}
+                </span>
+                <span className="min-w-0 break-words">{step}</span>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
+              <FileCode2 className="size-4 text-emerald-300" />
+              Quick lesson
+            </div>
+            <div className="mt-3 grid gap-2">
+              {(analysis?.learningTips ?? [
+                "Read the first stack frame in your code.",
+                "Compare the failing value with the expected value.",
+                "Re-run after one focused fix.",
+              ]).map((tip) => (
+                <p
+                  className="rounded-md bg-[#11161d] px-3 py-2 text-sm leading-6 text-zinc-300"
+                  key={tip}
+                >
+                  {tip}
+                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+      </AccordionSection>
+    </div>
+  );
+}
+
+function AccordionSection({
+  children,
+  isOpen,
+  onToggle,
+  title,
+}: {
+  children: React.ReactNode;
+  isOpen: boolean;
+  onToggle: () => void;
+  title: string;
+}) {
+  return (
+    <Panel className="overflow-hidden">
+      <button
+        className="flex w-full items-center justify-between gap-3 p-4 text-left"
+        onClick={onToggle}
+        type="button"
+      >
+        <span className="text-sm font-medium text-zinc-100">{title}</span>
+        <ChevronDown
+          className={`size-4 text-zinc-500 transition ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {isOpen ? <div className="border-t border-white/10 p-4">{children}</div> : null}
+    </Panel>
+  );
+}
+
+function InfoBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+      <p className="text-xs font-medium uppercase text-zinc-500">{label}</p>
+      <p className="mt-2 break-words text-sm leading-6 text-zinc-300">{value}</p>
+    </div>
+  );
+}
+
+function SummaryStat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 border-r border-white/10 p-3 last:border-r-0">
+      <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+        <Icon className="size-3.5 text-cyan-300" />
+        {label}
+      </div>
+      <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
+    </div>
+  );
 }
 
 function normalizeAnalysis(analysis: Partial<Analysis>): Analysis {
@@ -625,38 +687,4 @@ function normalizeAnalysis(analysis: Partial<Analysis>): Analysis {
       analysis.impact ||
       "Impact depends on where this error appears in the workflow.",
   };
-}
-
-function MetricCard({
-  icon: Icon,
-  label,
-  meta,
-  tone,
-  value,
-}: {
-  icon: React.ElementType;
-  label: string;
-  meta: string;
-  tone: string;
-  value: string;
-}) {
-  return (
-    <Panel className="p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-zinc-200">
-        <Icon className={`size-4 ${tone}`} />
-        {label}
-      </div>
-      <p className="mt-2 break-words text-xl font-semibold sm:text-2xl">{value}</p>
-      <p className="mt-1 break-words text-xs text-zinc-500">{meta}</p>
-    </Panel>
-  );
-}
-
-function MapStep({ label, step }: { label: string; step: string }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-      <p className="text-xs text-zinc-500">{step}</p>
-      <p className="mt-1 break-words text-sm font-medium text-zinc-100">{label}</p>
-    </div>
-  );
 }

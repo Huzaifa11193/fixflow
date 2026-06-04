@@ -37,6 +37,7 @@ export type HistoryItem = {
 };
 
 const HISTORY_EVENT = "fixflow-history-updated";
+const REMOTE_HISTORY_DISABLED_KEY = "fixflow:remote-history-disabled";
 const MAX_LOCAL_HISTORY = 50;
 
 function getStorageKey(userId?: string) {
@@ -45,6 +46,34 @@ function getStorageKey(userId?: string) {
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function canUseSessionStorage() {
+  return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
+}
+
+function isRemoteHistoryDisabled() {
+  if (!canUseSessionStorage()) return false;
+  return window.sessionStorage.getItem(REMOTE_HISTORY_DISABLED_KEY) === "true";
+}
+
+function disableRemoteHistory() {
+  if (!canUseSessionStorage()) return;
+  window.sessionStorage.setItem(REMOTE_HISTORY_DISABLED_KEY, "true");
+}
+
+function isMissingRemoteTableError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const record = error as { code?: string; message?: string; details?: string };
+  const message = `${record.code || ""} ${record.message || ""} ${record.details || ""}`.toLowerCase();
+
+  return (
+    message.includes("404") ||
+    message.includes("not found") ||
+    message.includes("does not exist") ||
+    message.includes("pgrst205")
+  );
 }
 
 function makeId() {
@@ -130,7 +159,7 @@ function writeLocalHistory(
 export async function loadHistory(userId?: string): Promise<HistoryItem[]> {
   const localItems = loadLocalHistory(userId);
 
-  if (!supabase || !userId) {
+  if (!supabase || !userId || isRemoteHistoryDisabled()) {
     return localItems;
   }
 
@@ -143,6 +172,10 @@ export async function loadHistory(userId?: string): Promise<HistoryItem[]> {
       .limit(50);
 
     if (error || !Array.isArray(data)) {
+      if (isMissingRemoteTableError(error)) {
+        disableRemoteHistory();
+      }
+
       return localItems;
     }
 
@@ -193,7 +226,7 @@ export async function saveHistoryItem({
   const localItems = loadLocalHistory(userId);
   writeLocalHistory(mergeHistory([item], localItems), userId);
 
-  if (!supabase || !userId) return item;
+  if (!supabase || !userId || isRemoteHistoryDisabled()) return item;
 
   try {
     const { data, error } = await supabase
@@ -209,7 +242,15 @@ export async function saveHistoryItem({
       .select("id,created_at")
       .single();
 
-    if (!error && data?.id) {
+    if (error) {
+      if (isMissingRemoteTableError(error)) {
+        disableRemoteHistory();
+      }
+
+      return item;
+    }
+
+    if (data?.id) {
       const syncedItem: HistoryItem = {
         ...item,
         id: String(data.id),
@@ -232,13 +273,17 @@ export async function deleteHistoryItem(item: HistoryItem, userId?: string) {
   const nextLocal = loadLocalHistory(userId).filter((entry) => entry.id !== item.id);
   writeLocalHistory(nextLocal, userId);
 
-  if (item.source === "supabase" && supabase && userId) {
+  if (item.source === "supabase" && supabase && userId && !isRemoteHistoryDisabled()) {
     try {
-      await supabase
+      const { error } = await supabase
         .from("error_analyses")
         .delete()
         .eq("id", item.id)
         .eq("user_id", userId);
+
+      if (isMissingRemoteTableError(error)) {
+        disableRemoteHistory();
+      }
     } catch {
       // Local deletion still stands.
     }
